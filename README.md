@@ -9,6 +9,6 @@ Currently, it doesn't perform any patching whatsoever, so it doesn't support sig
 ###Licensing:
 
 All of the code is available under the GPLv2 except for certain files under the "/fatfs/" directory, which are licensed under the MIT license.
-All files under the "/source/" directory (not recursively) are written by me (Wolfvak) and other possible collaborators.
+All files under the "/source/" directory (not recursively) are written by me, Wolfvak and other possible collaborators, with the exception of "start.s", which came from CakesFW.
 
 #### Special thanks to mid-kid for CakesFW and all of its derivatives, especially AuroraWright's AuReiNAND (now Luma3DS) for bringing my interest towards 3DS hacking.
