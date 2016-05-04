@@ -8,7 +8,7 @@ endif
 
 include $(DEVKITARM)/3ds_rules
 
-NAME		:=	KGB
+NAME		:=	kgb
 
 TARGET 		:=  arm9loaderhax
 BUILD		:=	build
