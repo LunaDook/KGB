@@ -1,27 +1,69 @@
 #include "fatfs/ff.h"
 #include "firm.h"
 #include "draw.h"
+#include "console.h"
+#include "hid.h"
+#include "i2c.h"
 
-framebuffer_t* fb = (framebuffer_t *) 0x23FFFE00;
+framebuffer_t *framebuffer;
+firm_header *firm;
 
-static FATFS sd;
+FATFS sd;
 
-/*void commit_sudoku(unsigned int delay) {
+void commit_sudoku(u32 delay)
+{
+	console_init();
+	print("\nGOODBYE CRUEL WORLD\n");
 	while(delay--) __asm("andeq r0, r0, r0");
-	i2cWriteRegister(DEVICE_MCU, MCU_POWER, 1);
-}*/
+	i2cWriteRegister(I2C_DEV_MCU, 0x20, 1);
+	while (1); // Loop until it shuts down
+}
+
+void error()
+{
+	print("Press the ANY button to power off");
+	input_wait();
+	commit_sudoku(1 << 18);
+}
 
 void main() {
-	clear_screen(fb->top_left, 0xFFFFFF); // White
+	console_init();
 	if (f_mount(&sd, "0:", 1) != FR_OK)
-		return; // If screen stays white, then the SD card failed to mount
+	{
+		print_rgb("Couldn't mount SD card!", RED);
+		error(); // Jumps to the infinite loop
+	}
 
-	clear_screen(fb->top_left, 0xFF0000); // Red
-	if (!load_firm("/firmware", 0))
-		return; // Red screen, to let the user know shit's fucked
+	print("Attepting to load FIRM from \"/firmware\"...\n\n");
+	int ret = load_firm("/firmware");
+	if (!ret)
+	{
+		print_rgb("\nCould not load FIRM!\n", RED);
+		error();
+	}
 
-	clear_screen(fb->top_left, 0x00FF00); // Green
-	launch_firm(0); // Success! Hopefully?
+	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
 
-	return;
+	u32 key = 0;
+
+	while(!(key & KEY_B))
+	{
+		key = input_wait();
+
+		switch (key)
+		{
+			case KEY_A:
+				print_rgb("Launching FIRM", GREEN);
+				launch_firm();
+				break; // Not necessary, but whatever
+
+			case KEY_B:
+				break;
+
+			default:
+				continue;
+		}
+	}
+
+	commit_sudoku(1 << 18);
 }

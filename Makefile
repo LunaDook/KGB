@@ -26,7 +26,7 @@ INCLUDES	:=	source source/fatfs source/fatfs/sdmmc
 
 LDFLAGS += --specs=$(CURDIR)/../$(NAME).specs
 
-ASFLAGS := -mlittle-endian -mcpu=arm946e-s -march=armv5te
+ASFLAGS := -mlittle-endian -mcpu=arm946e-s -march=armv5te -lgcc -nostdlib
 CFLAGS := -flto -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -Os -ffast-math
 
 #---------------------------------------------------------------------------------

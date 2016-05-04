@@ -1,4 +1,4 @@
 %rename link                old_link
 
 *link:
-%(old_link) -T ../kgb.ld%s
+%(old_link) -T ../KGB.ld%s

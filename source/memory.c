@@ -1,13 +1,6 @@
 #include "memory.h"
 
-/*
- Although it's pretty trivial for an engineer, I'm pretty proud of myself
- I rolled my own memory functions from scratch
- And somehow they work...
- I'm thinking there was some divine intervention here
-*/
-
-void memcpy(void *dest, void *src, u32 size) {
+void memcpy(void *dest, const void *src, u32 size) {
 	while (size--)
 		*(u8*)(dest + size) = *(u8*)(src + size);
 

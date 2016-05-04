@@ -2,6 +2,8 @@
 
 #include "types.h"
 
+#define FIRM_MAGIC	0x4D524946
+
 //FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
 
 /* FIRM section structure
@@ -23,7 +25,8 @@ OFFSET	SIZE	DESCRIPTION
 0x010	0x020	SHA-256 Hash of Firmware Section
 */
 
-typedef struct firm_section {
+typedef struct firm_section
+{
     u32 byte_offset;
     u32 load_address;
     u32 size;
@@ -31,7 +34,8 @@ typedef struct firm_section {
     u8 sha256_hash[0x20];
 } firm_section;
 
-typedef struct firm_header {
+typedef struct firm_header
+{
     u32 magic;
     u32 reserved1;
     u32 arm11_entry;
@@ -41,6 +45,7 @@ typedef struct firm_header {
 	u8 rsa2048_signature[0x100];
 } firm_header;
 
-int patch_loader(char* cxi_name);
-int load_firm(const char* firm_filename, int firmID); // Loads firm_filename to firm[firmID]
-void launch_firm(int firmID); // Launches firm[firmID] (which should be NATIVE_FIRM)
+extern firm_header *firm;
+
+u8 load_firm(const char* firm_filename); // Loads firm_filename to FCRAM
+void launch_firm(); // Launches firm
