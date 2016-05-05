@@ -1,45 +1,36 @@
-#include "fatfs/ff.h"
-#include "firm.h"
-#include "draw.h"
-#include "console.h"
-#include "hid.h"
-#include "i2c.h"
+#include "common.h"
 
 framebuffer_t *framebuffer;
-firm_header *firm;
 
 FATFS sd;
 
-void commit_sudoku(u32 delay)
+char *firm_fname = "/firmware";
+
+void poweroff()
 {
-	console_init();
-	print("\nGOODBYE CRUEL WORLD\n");
-	while(delay--) __asm("andeq r0, r0, r0");
 	i2cWriteRegister(I2C_DEV_MCU, 0x20, 1);
 	while (1); // Loop until it shuts down
 }
 
-void error()
+void error(u32 err_id)
 {
-	print("Press the ANY button to power off");
+	printf("ERROR 0x%08X\nPress the ANY key to power off", err_id);
 	input_wait();
-	commit_sudoku(1 << 18);
+	poweroff();
 }
 
 void main() {
 	console_init();
 	if (f_mount(&sd, "0:", 1) != FR_OK)
 	{
-		print_rgb("Couldn't mount SD card!", RED);
-		error(); // Jumps to the infinite loop
+		error(0x5D015BAD); // SD IS BAD
 	}
 
-	print("Attepting to load FIRM from \"/firmware\"...\n\n");
-	int ret = load_firm("/firmware");
+	printf("Attempting to load FIRM from %s...\n\n", firm_fname);
+	int ret = load_firm(firm_fname);
 	if (!ret)
 	{
-		print_rgb("\nCould not load FIRM!\n", RED);
-		error();
+		error(0x5D000000); // SD VOID
 	}
 
 	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
@@ -53,17 +44,13 @@ void main() {
 		switch (key)
 		{
 			case KEY_A:
-				print_rgb("Launching FIRM", GREEN);
+				print_rgb("Booting FIRM", GREEN);
 				launch_firm();
-				break; // Not necessary, but whatever
 
 			case KEY_B:
 				break;
-
-			default:
-				continue;
 		}
 	}
 
-	commit_sudoku(1 << 18);
+	poweroff();
 }

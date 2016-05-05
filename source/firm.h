@@ -1,6 +1,9 @@
+// KGB by Wolfvak
+// FIRM-relatead structures and functions
+
 #pragma once
 
-#include "types.h"
+#include "common.h"
 
 #define FIRM_MAGIC	0x4D524946
 
@@ -29,7 +32,7 @@ typedef struct firm_section
 {
     u32 byte_offset;
     u32 load_address;
-    u32 size;
+    size_t size;
     u32 processor_type;
     u8 sha256_hash[0x20];
 } firm_section;
@@ -42,10 +45,10 @@ typedef struct firm_header
     u32 arm9_entry;
     u8 reserved2[0x30];
     firm_section section[4];
-	u8 rsa2048_signature[0x100];
+	//u8 rsa2048_signature[0x100]; // Not needed
 } firm_header;
 
 extern firm_header *firm;
 
-u8 load_firm(const char* firm_filename); // Loads firm_filename to FCRAM
+u8 load_firm(const char *firm_filename); // Loads firm_filename to FCRAM
 void launch_firm(); // Launches firm

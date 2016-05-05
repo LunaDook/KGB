@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "common.h"
 
 #define REG_SHACNT      ((volatile uint32_t*)0x1000A000)
 #define REG_SHABLKCNT   ((volatile uint32_t*)0x1000A004)

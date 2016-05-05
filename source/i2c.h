@@ -1,6 +1,6 @@
 #pragma once
 
-#include "types.h"
+#include "common.h"
 
 #define I2C1_REG_OFF 0x10161000
 #define I2C2_REG_OFF 0x10144000

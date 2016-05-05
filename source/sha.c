@@ -1,5 +1,4 @@
-#include "sha.h"
-#include "memory.h"
+#include "common.h"
 
 void sha_init(u32 mode)
 {

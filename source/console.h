@@ -1,6 +1,6 @@
 #pragma once
 
-#include "draw.h"
+#include "common.h"
 
 #define BLACK 0x000000
 #define WHITE 0xFFFFFF

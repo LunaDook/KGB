@@ -1,4 +1,9 @@
+// KGB by Wolfvak
+// HID Interface
+
 #pragma once
+
+#include "common.h"
 
 #define HID_PAD         ((*(volatile u16*)0x10146000) ^ 0xFFF) // XOR'd with 0xFFF because Nintendo loves us
 
@@ -15,11 +20,6 @@
 #define KEY_X			(1 << 10) // X
 #define KEY_Y			(1 << 11) // Y
 
-u32 input_wait() {
-	u32 key = HID_PAD;
+// All of this was taken from 3dbrew.org/wiki/HID_Registers
 
-	while(HID_PAD == key)
-		;
-
-	return HID_PAD;
-}
+u16 input_wait();

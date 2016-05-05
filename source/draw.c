@@ -1,31 +1,17 @@
-#include "draw.h"
-#include "memory.h"
+#include "common.h"
 
 framebuffer_t *framebuffer = (framebuffer_t *)0x23FFFE00;
 
-void clear_screen(u8 *fb, u32 rgb){
-	u8 pixeldata[3] = {rgb & 0xFF, (rgb >> 8) & 0xFF, (rgb >> 16) & 0xFF};
+void clear_screen(u8 *fb, u32 rgb)
+{
+	u8 packet[3] = {rgb & 0xFF, (rgb >> 8) & 0xFF, (rgb >> 16) & 0xFF};
+	size_t sz = fb_dimension(fb), i = 0;
 
-	u32 sz;
-	
-	if (pixeldata[0] == pixeldata[1] && pixeldata[1] == pixeldata[2]) {
-		sz = fb_sz(fb);
-		memset(fb, pixeldata[0], sz);
-		return;
+	while (i < sz) {
+		*(u8*)(fb + i++) = packet[0];
+		*(u8*)(fb + i++) = packet[1];
+		*(u8*)(fb + i++) = packet[2];
 	}
-
-	sz = fb_sz_reduced(fb);
-	while (sz--) {
-		memcpy(fb + (sz * 3), pixeldata, 3);
-	}
-
-	return;
-}
-
-void set_pixel(u8 *fb, u16 x, u16 y, u32 rgb) { // Because macros hate me apparently
-	u32 offset = (HEIGHT * x + HEIGHT - y - 1) * 3;
-	u8 p[3] = {rgb & 0xFF, (rgb >> 8) & 0xFF, (rgb >> 16) & 0xFF};
-	memcpy(fb + offset, p, 3);	
 }
 
 void draw_char(u16 x, u16 y, u32 rgb, char c)
