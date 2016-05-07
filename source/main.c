@@ -9,45 +9,51 @@ char *firm_fname = "/firmware";
 void poweroff()
 {
 	i2cWriteRegister(I2C_DEV_MCU, 0x20, 1);
-	while (1); // Loop until it shuts down
+	for(;;)
+		;
 }
 
-void error(u32 err_id)
+void error(const char *err_msg)
 {
-	printf("ERROR 0x%08X\nPress the ANY key to power off", err_id);
+	printf_rgb(RED, "ERROR: %s\nPress the ANY key to power off", err_msg);
 	input_wait();
 	poweroff();
 }
 
-void main() {
+void main()
+{
 	console_init();
+	printf("\n");
+
 	if (f_mount(&sd, "0:", 1) != FR_OK)
 	{
-		error(0x5D015BAD); // SD IS BAD
+		error("couldn't mount the SD card");
 	}
 
 	printf("Attempting to load FIRM from %s...\n\n", firm_fname);
 	int ret = load_firm(firm_fname);
+
 	if (!ret)
 	{
-		error(0x5D000000); // SD VOID
+		error("couldn't load firmware");
 	}
 
-	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
+	printf("\nPress [A] to boot FIRM\nPress [B] to power off\n");
 
 	u32 key = 0;
 
-	while(!(key & KEY_B))
+	for(;;)
 	{
 		key = input_wait();
 
-		switch (key)
+		if (key & KEY_A)
 		{
-			case KEY_A:
-				print_rgb("Booting FIRM", GREEN);
-				launch_firm();
+			printf_rgb(GREEN, "Booting FIRM");
+			launch_firm();
+		}
 
-			case KEY_B:
+		if (key & KEY_B)
+		{
 				break;
 		}
 	}

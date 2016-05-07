@@ -15,7 +15,6 @@ void* memset(void *dst, int n, size_t len) {
 }
 
 int memcmp(void *s1, void *s2, size_t len) {
-
 	for ( ; len-- ; s1++, s2++)
 		if (*(u8*)s1 != *(u8*)s2)
 			return (*(u8*)s1 - *(u8*)s2);

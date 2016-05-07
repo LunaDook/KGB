@@ -3,6 +3,8 @@
 
 #pragma once
 
+#define MAX_PATH 50 // Due to console width and such
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -40,8 +42,7 @@ typedef u32 Handle;
 #include "hid.h"
 #include "i2c.h"
 #include "memory.h"
-#include "menu.h"
 #include "printf.h"
 #include "sha.h"
 
-void error(u32 err_id);
+void error(const char *err_msg);

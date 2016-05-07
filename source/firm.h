@@ -5,10 +5,9 @@
 
 #include "common.h"
 
-#define FIRM_MAGIC	0x4D524946
+#define FIRM_MAGIC	0x4D524946 // 'FIRM'
 
 //FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
-
 /* FIRM section structure
 OFFSET	SIZE			DESCRIPTION
 0x000	4				Magic 'FIRM'
@@ -45,7 +44,7 @@ typedef struct firm_header
     u32 arm9_entry;
     u8 reserved2[0x30];
     firm_section section[4];
-	//u8 rsa2048_signature[0x100]; // Not needed
+	//u8 rsa2048_signature[0x100]; // Unused in KGB
 } firm_header;
 
 extern firm_header *firm;
