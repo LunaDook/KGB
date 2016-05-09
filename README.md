@@ -1,20 +1,17 @@
-#KGB - Possibly the worst 3DS CFW the world has ever had the pleasure to witness
+# KGB-stage2 - Modified KGB payload to boot from NAND rather than SD
 
-This is a tiny arm9loaderhax-only payload that performs a firmlaunch from a file named "/firmware".
+# Note
+This is extremely early alpha software, I'm just putting it out here in case anyone wants to check it out.
+I won't provide any support whatsoever (yet) and lack of documentation is to be expected.
+If you have any specific question or think it can be improved in a certain area (especially executable size) please let me know.
 
-Currently only for old3DS, although I think it can work with a new3DS if using an extremely modded firmware (decrypted arm9 section, changed arm9 entrypoint, etc.)
+# How to build
+Basically, make any modifications you want under '/source' and run 'make'. It should generate a file called 'kgb.bin', use xxd on that file (xxd -i kgb.bin > kgb.h) and copy kgb.h to '/loader/source'.
+Run 'make' inside '/loader' and it should generate 'arm9loaderhax.bin'. This file is your stage2 payload.
 
-This is both an experiment to see how low a CFWs size can go, and as an excercise to myself, to see whether I'm able to write one from scratch (excluding sdmmc-related code, which can be worked around by including the firmware in the binary, but ugh...)
+Please note that it doesn't perform any kind of patching, and firmware reading is still done from the SD card, and doesn't support chainloading so if you want to try this out, please use it as your alternative payload.
 
-Currently, it doesn't perform any patching whatsoever, so it doesn't support signature patches (homebrew and piracy) or reboot titles or any other feature from fully-grown CFWs.
+# Special thanks to a lot of people (you know who you are :3)
 
-###Licensing:
-
-All of the code is available under the GPLv2 except for certain files under the "/fatfs/" directory, which are licensed under the MIT license.
-All files under the "/source/" directory (not recursively) are written by me, Wolfvak and other possible collaborators, with the exception of "start.s", which came from CakesFW.
-
-Most of the console code (console.{c, h}) came from b1l1s' ctr project, it's pretty interesting and has a lot of stuff.
-
-#### Special thanks to mid-kid for CakesFW and all of its derivatives, especially AuroraWright's AuReiNAND (now Luma3DS) for partly bringing my interest towards 3DS hacking
-
-#### Also thanks to d0k3 for letting me use plenty of his stuff (sha.{c, h} and i2c.{c, h}), and to Kitlith and Docmudkipz for plenty of testing.
+###### Small note
+Don't worry about arm11.h, it was generated from a standard arm9loaderhax repo (delebile's one to be precise) and converted using xxd, so if you want it's source go here https://github.com/delebile/arm9loaderhax/blob/master/screen_init/source/screen_init/screen_init.c

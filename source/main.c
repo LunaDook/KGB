@@ -15,7 +15,9 @@ void poweroff()
 
 void error(const char *err_msg)
 {
-	printf_rgb(RED, "ERROR: %s\nPress the ANY key to power off", err_msg);
+	print("ERROR: ");
+	print(err_msg);
+	print("\nPress the ANY key to power off");
 	input_wait();
 	poweroff();
 }
@@ -23,14 +25,17 @@ void error(const char *err_msg)
 void main()
 {
 	console_init();
-	printf("\n");
+	print("KGB: rescue mode\n\n");
 
 	if (f_mount(&sd, "0:", 1) != FR_OK)
 	{
 		error("couldn't mount the SD card");
 	}
 
-	printf("Attempting to load FIRM from %s...\n\n", firm_fname);
+	print("Attempting to load FIRM from ");
+	print(firm_fname);
+	print(" \n\n");
+
 	int ret = load_firm(firm_fname);
 
 	if (!ret)
@@ -38,9 +43,9 @@ void main()
 		error("couldn't load firmware");
 	}
 
-	printf("\nPress [A] to boot FIRM\nPress [B] to power off\n");
+	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
 
-	u32 key = 0;
+	u16 key = 0;
 
 	for(;;)
 	{
@@ -48,7 +53,7 @@ void main()
 
 		if (key & KEY_A)
 		{
-			printf_rgb(GREEN, "Booting FIRM");
+			print("Booting FIRM");
 			launch_firm();
 		}
 

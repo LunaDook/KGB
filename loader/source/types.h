@@ -37,14 +37,3 @@ typedef u32 Handle;
 
 #define true 1
 #define false 0
-
-#include "console.h"
-#include "draw.h"
-#include "fatfs/ff.h"
-#include "firm.h"
-#include "font.h"
-#include "hid.h"
-#include "i2c.h"
-#include "memory.h"
-
-void error(const char *err_msg);

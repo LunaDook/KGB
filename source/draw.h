@@ -6,16 +6,10 @@
 #define TOP_WIDTH	400
 #define SUB_WIDTH	320
 
-#define TOP_RFB_SZ	(TOP_WIDTH * HEIGHT)
-#define SUB_RFB_SZ	(SUB_WIDTH * HEIGHT)
+#define TOP_FB_SZ	(TOP_WIDTH * HEIGHT)
+#define SUB_FB_SZ	(SUB_WIDTH * HEIGHT)
 
-#define TOP_FB_SZ	(TOP_WIDTH * HEIGHT * 3)
-#define SUB_FB_SZ	(SUB_WIDTH * HEIGHT * 3)
-
-#define fb_sz_reduced(fb) \
-	(fb == framebuffer->bottom ? SUB_RFB_SZ : TOP_RFB_SZ)
-
-#define fb_dimension(fb) \
+#define fb_sz(fb) \
 	(fb == framebuffer->bottom ? SUB_FB_SZ : TOP_FB_SZ)
 
 #define set_pixel(fb, x, y, rgb) \
@@ -35,4 +29,4 @@ typedef struct framebuffer_t {
 extern framebuffer_t *framebuffer;
 
 void clear_screen(const u8 *fb, u32 rgb);
-void draw_char(const u16 x, const u16 y, const u32 fg, const u32 bg, const char c);
+void draw_char(const u16 x, const u16 y, const char c);

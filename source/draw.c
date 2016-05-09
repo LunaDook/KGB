@@ -5,9 +5,10 @@ framebuffer_t *framebuffer = (framebuffer_t *)0x23FFFE00;
 void clear_screen(const u8 *fb, u32 rgb)
 {
 	u8 packet[3] = {rgb & 0xFF, (rgb >> 8) & 0xFF, (rgb >> 16) & 0xFF};
-	size_t sz = fb_dimension(fb), i = 0;
+	size_t sz = fb_sz(fb)*3, i = 0;
 
-	while (i < sz) {
+	while (i < sz)
+	{
 		*(u8*)(fb + i++) = packet[0];
 		*(u8*)(fb + i++) = packet[1];
 		*(u8*)(fb + i++) = packet[2];
@@ -15,7 +16,7 @@ void clear_screen(const u8 *fb, u32 rgb)
 	return;
 }
 
-void draw_char(const u16 x, const u16 y, const u32 fg, const u32 bg, const char c)
+void draw_char(const u16 x, const u16 y, const char c)
 {
 	u32 _x, _y, _c = (c > 0 && c < 128) ? (c * 8) : (0);
 	for(_y = 0; _y < FONT_Y; _y++)
@@ -26,12 +27,7 @@ void draw_char(const u16 x, const u16 y, const u32 fg, const u32 bg, const char 
 		{
 			if(row & mask)
 			{
-				set_pixel(framebuffer->top_left, x + _x, y + _y, fg);
-			}
-
-			else
-			{
-				set_pixel(framebuffer->top_left, x + _x, y + _y, bg);
+				set_pixel(framebuffer->top_left, x + _x, y + _y, 0xFFFFFF);
 			}
 		}
 	}

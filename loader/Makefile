@@ -8,9 +8,7 @@ endif
 
 include $(DEVKITARM)/3ds_rules
 
-NAME		:=	kgb
-
-TARGET 		:=  arm9loaderhax
+TARGET 		:=  loader
 BUILD		:=	build
 SOURCES		:=	source source/fatfs source/fatfs/sdmmc
 DATA		:=	data
@@ -24,7 +22,7 @@ INCLUDES	:=	source source/fatfs source/fatfs/sdmmc
 # options for code generation
 #---------------------------------------------------------------------------------
 
-LDFLAGS += --specs=$(CURDIR)/../$(NAME).specs
+LDFLAGS += --specs=$(CURDIR)/../linker.specs
 
 ASFLAGS := -mlittle-endian -mcpu=arm946e-s -march=armv5te
 CFLAGS := -flto -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -O2 -ffast-math
