@@ -5,7 +5,7 @@
 
 #include "common.h"
 
-#define HID_PAD         ((*(volatile u16*)0x10146000) ^ 0xFFF) // XOR'd with 0xFFF because Nintendo loves us
+#define HID_PAD         ((*(volatile u32*)0x10146000) ^ 0xFFF) // XOR'd with 0xFFF because Nintendo loves us
 
 #define KEY_A			(1 << 0)  // A
 #define KEY_B			(1 << 1)  // B
@@ -22,4 +22,4 @@
 
 // All of this was taken from 3dbrew.org/wiki/HID_Registers
 
-u16 input_wait();
+u32 input_wait();

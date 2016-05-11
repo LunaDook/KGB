@@ -6,11 +6,29 @@ FATFS sd;
 
 char *firm_fname = "/firmware";
 
+void chainload()
+{
+	FIL a9lh_payload;
+	unsigned int br;
+	
+	if (f_open(&a9lh_payload, PAYLOAD_NAME, FA_READ) != FR_OK)
+	{
+		return;
+	}
+
+	if (f_read(&a9lh_payload, (void*)DEST_ADDR, 0x200000, &br) != FR_OK)
+	{
+		f_close(&a9lh_payload);
+		return;
+	}
+	
+	((void (*)())DEST_ADDR)();
+}
+
 void poweroff()
 {
-	i2cWriteRegister(I2C_DEV_MCU, 0x20, 1);
-	for(;;)
-		;
+	i2cWriteRegister(I2C_DEV_MCU, 0x20, 1); // Power off
+	while(1);
 }
 
 void error(const char *err_msg)
@@ -24,6 +42,8 @@ void error(const char *err_msg)
 
 void main()
 {
+	//chainload(); //Not just yet...
+
 	console_init();
 	print("KGB: rescue mode\n\n");
 
@@ -34,7 +54,7 @@ void main()
 
 	print("Attempting to load FIRM from ");
 	print(firm_fname);
-	print(" \n\n");
+	print("\n\n");
 
 	int ret = load_firm(firm_fname);
 
@@ -45,9 +65,9 @@ void main()
 
 	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
 
-	u16 key = 0;
+	u32 key = 0;
 
-	for(;;)
+	while(1)
 	{
 		key = input_wait();
 
@@ -59,7 +79,7 @@ void main()
 
 		if (key & KEY_B)
 		{
-				break;
+			break;
 		}
 	}
 

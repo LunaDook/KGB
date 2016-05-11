@@ -3,8 +3,8 @@
 
 #include "common.h"
 
-u16 input_wait() {
-	u16 pad = HID_PAD;
+u32 input_wait() {
+	u32 pad = HID_PAD;
 
 	while(HID_PAD == pad)
 		;

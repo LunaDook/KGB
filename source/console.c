@@ -34,29 +34,51 @@ inline void print(const char *msg)
 	return;
 }
 
-// Prints n as "0x..."
 void print_hex(const u32 n)
 {
-	char *hexArray = "0123456789ABCDEF", str[] = "0x00000000";
-	u8 i;
+	char *hexArray = "0123456789ABCDEF";
+	u32 i;
 
-	for (i = 0; i < 9; i++)
+	for (i = 2; i < 9; i += 2) // Pad to 1 byte
 	{
-		if ((n >> (i*4)) == 0)
+		if ((n >> (i*4)) == 0) // Should mix the conditionals together, I'll keep it here to keep it clean
 		{
-			str[i+2] = 0;
 			break;
 		}
 	}
 
-	u8 end = i + 1;
-
-	for (u8 x = 0; x < (end - 1); x++) {
-		str[end - x] = hexArray[((n >> x*4) & 0xF)];
+	while(i--)
+	{
+		console_putc(hexArray[((n >> i*4) & 0xF)]);
 	}
 
-	print(str);
+	return;
+}
 
+void print_hash(u8 *hash, u32 len)
+{
+	u32 long_n;
+	for (u32 i = 0; i < (len >> 2); i++)
+	{
+		long_n = 0;
+		u32 id = (i << 2);
+
+		if (i == (len >> 3) && (len >> 2) > 50) // Only for formatting purposes
+		{
+			print("\n");
+		}
+
+		for (u32 x = 0; x < 4; x++)
+		{
+			long_n <<= 8;
+			if ((id + x) <= len) // Should take care of the alignment
+			{
+				long_n += hash[id + x];
+			}
+		}
+
+		print_hex(long_n);
+	}
 	return;
 }
 

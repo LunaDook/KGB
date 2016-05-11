@@ -4,8 +4,16 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 #include <string.h>
 #include <stdint.h>
+
+#define PAYLOAD_NAME "/arm9loaderhax.bin"
+#define DEST_ADDR    0x23F00000
+// KGB-stage2 will be loaded to 0x24F0000 in the future
+// PAYLOAD_NAME will be loaded to 0x23F00000 in case it exists
+// Otherwise KGB-stage2 will attempt to perform a firmlaunch
+
 
 typedef unsigned char       u8;
 typedef unsigned short      u16;
@@ -27,7 +35,6 @@ typedef volatile s16        vs16;
 typedef volatile s32        vs32;
 typedef volatile s64        vs64;
 
-typedef u8  bool;
 typedef u32 Handle;
 
 /*
@@ -46,5 +53,6 @@ typedef u32 Handle;
 #include "hid.h"
 #include "i2c.h"
 #include "memory.h"
+#include "sha.h"
 
 void error(const char *err_msg);
