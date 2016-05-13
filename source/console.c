@@ -36,7 +36,7 @@ inline void print(const char *msg)
 
 void print_hex(const u32 n)
 {
-	char *hexArray = "0123456789ABCDEF";
+	char c;
 	u32 i;
 
 	for (i = 2; i < 9; i += 2) // Pad to 1 byte
@@ -49,7 +49,8 @@ void print_hex(const u32 n)
 
 	while(i--)
 	{
-		console_putc(hexArray[((n >> i*4) & 0xF)]);
+		char c = (n >> i*4) & 0xF;
+		console_putc((c < 0xA) ? ('0' + c) : ('7' + c));
 	}
 
 	return;
@@ -63,7 +64,7 @@ void print_hash(u8 *hash, u32 len)
 		long_n = 0;
 		u32 id = (i << 2);
 
-		if (i == (len >> 3) && (len >> 2) > 50) // Only for formatting purposes
+		if (i == (len >> 3) && len > 12) // Only for formatting purposes
 		{
 			print("\n");
 		}
@@ -76,7 +77,6 @@ void print_hash(u8 *hash, u32 len)
 				long_n += hash[id + x];
 			}
 		}
-
 		print_hex(long_n);
 	}
 	return;

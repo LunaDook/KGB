@@ -5,7 +5,9 @@
 
 #include "common.h"
 
-#define FIRM_MAGIC	0x4D524946 // 'FIRM'
+#define FIRM_MAGIC   0x4D524946 // 'FIRM'
+
+#define n3ds         (*(u8*)0x10140FFC == (1 + (1 << 1) + (1 << 2)))
 
 //FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
 /* FIRM section structure
@@ -49,5 +51,5 @@ typedef struct firm_header
 
 extern firm_header *firm;
 
-u8 load_firm(const char *firm_filename); // Loads firm_filename to FCRAM
+int load_firm(const char *firm_filename); // Loads firm_filename
 void launch_firm(); // Launches firm

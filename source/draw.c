@@ -2,7 +2,7 @@
 
 framebuffer_t *framebuffer = (framebuffer_t *)0x23FFFE00;
 
-void clear_screen(const u8 *fb, u32 rgb)
+void clear_screen(const u8 *fb, const u32 rgb)
 {
 	size_t sz = fb_sz(fb)*3, i = 0;
 
@@ -15,17 +15,13 @@ void clear_screen(const u8 *fb, u32 rgb)
 	return;
 }
 
-void draw_char(const u16 x, const u16 y, const char c)
+void draw_char(const u16 x, const u16 y, const u8 c)
 {
-	u16 _x, _y, _c;
+	u16 _x, _y, _c = 0;
 
-	if (c > 0 && c < 128)
+	if (c < 0x80)
 	{
 		_c = c*8;
-	}
-	else
-	{
-		_c = 0;
 	}
 
 	for(_y = 0; _y < FONT_Y; _y++)

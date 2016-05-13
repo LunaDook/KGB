@@ -28,5 +28,5 @@ typedef struct framebuffer_t {
 
 extern framebuffer_t *framebuffer;
 
-void clear_screen(const u8 *fb, u32 rgb);
-void draw_char(const u16 x, const u16 y, const char c);
+void clear_screen(const u8 *fb, const u32 rgb);
+void draw_char(const u16 x, const u16 y, const u8 c);

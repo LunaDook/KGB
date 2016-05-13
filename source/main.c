@@ -9,19 +9,22 @@ char *firm_fname = "/firmware";
 void chainload()
 {
 	FIL a9lh_payload;
+	FRESULT f_ret;
 	unsigned int br;
-	
-	if (f_open(&a9lh_payload, PAYLOAD_NAME, FA_READ) != FR_OK)
+
+	f_ret = f_open(&a9lh_payload, PAYLOAD_NAME, FA_READ);
+	if (f_ret != FR_OK)
 	{
 		return;
 	}
 
-	if (f_read(&a9lh_payload, (void*)DEST_ADDR, 0x200000, &br) != FR_OK)
+	f_ret = f_read(&a9lh_payload, (void*)DEST_ADDR, 0x200000, &br);
+	if (f_ret != FR_OK)
 	{
 		f_close(&a9lh_payload);
 		return;
 	}
-	
+
 	((void (*)())DEST_ADDR)();
 }
 
@@ -42,8 +45,6 @@ void error(const char *err_msg)
 
 void main()
 {
-	//chainload(); //Not just yet...
-
 	console_init();
 	print("KGB: rescue mode\n\n");
 
@@ -51,6 +52,8 @@ void main()
 	{
 		error("couldn't mount the SD card");
 	}
+
+	//chainload(); Not just yet...
 
 	print("Attempting to load FIRM from ");
 	print(firm_fname);
@@ -63,9 +66,9 @@ void main()
 		error("couldn't load firmware");
 	}
 
-	print("\nPress [A] to boot FIRM\nPress [B] to power off\n");
+	print("\nPress [A] to boot FIRM\nPress [B] to power off\n\n");
 
-	u32 key = 0;
+	u32 key;
 
 	while(1)
 	{
@@ -76,8 +79,7 @@ void main()
 			print("Booting FIRM");
 			launch_firm();
 		}
-
-		if (key & KEY_B)
+		else if (key & KEY_B)
 		{
 			break;
 		}

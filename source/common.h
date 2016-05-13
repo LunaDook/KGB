@@ -15,25 +15,25 @@
 // Otherwise KGB-stage2 will attempt to perform a firmlaunch
 
 
-typedef unsigned char       u8;
-typedef unsigned short      u16;
-typedef unsigned long       u32;
-typedef unsigned long long  u64;
+typedef uint8_t       u8;
+typedef uint16_t      u16;
+typedef uint32_t      u32;
+typedef uint64_t      u64;
 
-typedef signed   char       s8;
-typedef signed   short      s16;
-typedef signed   long       s32;
-typedef signed   long long  s64;
+typedef int8_t        s8;
+typedef int16_t       s16;
+typedef int32_t       s32;
+typedef int64_t       s64;
 
-typedef volatile u8	        vu8;
-typedef volatile u16        vu16;
-typedef volatile u32        vu32;
-typedef volatile u64        vu64;
+typedef volatile u8	  vu8;
+typedef volatile u16  vu16;
+typedef volatile u32  vu32;
+typedef volatile u64  vu64;
 
-typedef volatile s8	        vs8;
-typedef volatile s16        vs16;
-typedef volatile s32        vs32;
-typedef volatile s64        vs64;
+typedef volatile s8	  vs8;
+typedef volatile s16  vs16;
+typedef volatile s32  vs32;
+typedef volatile s64  vs64;
 
 typedef u32 Handle;
 

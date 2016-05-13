@@ -2,7 +2,7 @@
 
 firm_header *firm = (firm_header*)0x24000000;
 
-u8 load_firm(const char *firm_filename)
+int load_firm(const char *firm_filename)
 {
 	FIL firm_file;
 	FRESULT f_ret;
@@ -30,6 +30,17 @@ u8 load_firm(const char *firm_filename)
 	print("\nARM9 entrypoint located @ 0x");
 	print_hex(firm->arm9_entry);
 	print("\n");
+
+	if (n3ds) // Detect whether we're running in a n3DS...
+	{
+		print("NEW3DS Detected! Fixing ARM9 entrypoint...\n");
+		firm->arm9_entry = 0x0801B01C;
+
+		if (((firm->section[2].load_address >> 8) & 0xFF) != 0x68) // If the third byte of the load address is not 0x60...
+		{
+			print("Warning! You're using a non-N3DS firmware!\n");
+		}
+	}
 
 	u8 calc_sha256[0x20];
 
