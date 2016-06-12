@@ -8,13 +8,6 @@
 #include <string.h>
 #include <stdint.h>
 
-#define PAYLOAD_NAME "/arm9loaderhax.bin"
-#define DEST_ADDR    0x23F00000
-// KGB-stage2 will be loaded to 0x24F0000 in the future
-// PAYLOAD_NAME will be loaded to 0x23F00000 in case it exists
-// Otherwise KGB-stage2 will attempt to perform a firmlaunch
-
-
 typedef uint8_t       u8;
 typedef uint16_t      u16;
 typedef uint32_t      u32;
@@ -35,24 +28,18 @@ typedef volatile s16  vs16;
 typedef volatile s32  vs32;
 typedef volatile s64  vs64;
 
-typedef u32 Handle;
-
-/*
-#define true 0
-#define false 1
-*/ // Happy debugging motherfuckers
-
-#define true 1
-#define false 0
+#include <ctr9/aes.h>
+#include <ctr9/ctr_system.h>
+#include <ctr9/i2c.h>
+#include <ctr9/io.h>
+#include <ctr9/io/ctr_fatfs.h>
 
 #include "console.h"
 #include "draw.h"
-#include "fatfs/ff.h"
 #include "firm.h"
 #include "font.h"
 #include "hid.h"
-#include "i2c.h"
-#include "memory.h"
-#include "sha.h"
+#include "patcher.h"
 
+void print_fresult(FRESULT f_ret);
 void error(const char *err_msg);

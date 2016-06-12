@@ -12,9 +12,9 @@ NAME		:=	kgb
 
 TARGET 		:=  arm9loaderhax
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/fatfs/sdmmc
+SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=	source source/fatfs source/fatfs/sdmmc
+INCLUDES	:=	source
 
 #---------------------------------------------------------------------------------
 # Setup some defines
@@ -24,11 +24,12 @@ INCLUDES	:=	source source/fatfs source/fatfs/sdmmc
 # options for code generation
 #---------------------------------------------------------------------------------
 
-LDFLAGS += --specs=$(CURDIR)/../$(NAME).specs
+LDFLAGS += --specs=$(CURDIR)/../$(NAME).specs -L$(CTRARM9)/lib
 
 ASFLAGS := -mlittle-endian -mcpu=arm946e-s -march=armv5te
-CFLAGS := -flto -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -O2 -ffast-math
+CFLAGS := -L$(CTRARM9)/lib -I$(CTRARM9)/include -O2 -flto -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -ffast-math
 
+LIBS   := -lctr9
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib

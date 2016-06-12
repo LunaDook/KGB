@@ -6,11 +6,10 @@
 #include "common.h"
 
 #define FIRM_MAGIC   0x4D524946 // 'FIRM'
-
-#define n3ds         (*(u8*)0x10140FFC == (1 + (1 << 1) + (1 << 2)))
+#define N3DS         (*(u8*)0x10140FFC == 7)
 
 //FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
-/* FIRM section structure
+/** FIRM section structure
 OFFSET	SIZE			DESCRIPTION
 0x000	4				Magic 'FIRM'
 0x004	4				Reserved1
@@ -33,7 +32,7 @@ typedef struct firm_section
 {
     u32 byte_offset;
     u32 load_address;
-    size_t size;
+    u32 size;
     u32 processor_type;
     u8 sha256_hash[0x20];
 } firm_section;
