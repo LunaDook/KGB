@@ -1,6 +1,3 @@
-// KGB by Wolfvak
-// Common definitions and includes
-
 #pragma once
 
 #include <stddef.h>
@@ -43,3 +40,4 @@ typedef volatile s64  vs64;
 
 void print_fresult(FRESULT f_ret);
 void error(const char *err_msg);
+int decrypt_firm_ncch(char *buffer);

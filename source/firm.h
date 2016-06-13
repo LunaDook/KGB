@@ -1,6 +1,3 @@
-// KGB by Wolfvak
-// FIRM-relatead structures and functions
-
 #pragma once
 
 #include "common.h"
@@ -9,6 +6,7 @@
 #define N3DS         (*(u8*)0x10140FFC == 7)
 
 //FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
+
 /** FIRM section structure
 OFFSET	SIZE			DESCRIPTION
 0x000	4				Magic 'FIRM'

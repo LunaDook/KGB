@@ -145,11 +145,9 @@ void launch_firm()
     print("Setting ARM11 entrypoint to 0x");
     print_hex(firm->arm11_entry);
     print("\n");
-
 	*(u32*)0x1FFFFFF8 = firm->arm11_entry;
-    ctr_flush_cache();
-    print("Executing ARM9 code @ 0x");
 
+    print("Executing ARM9 entrypoint @ 0x");
 	print_hex(firm->arm9_entry);
 	((void (*)())firm->arm9_entry)();
 }

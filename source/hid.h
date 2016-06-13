@@ -1,6 +1,3 @@
-// KGB by Wolfvak
-// HID Interface
-
 #pragma once
 
 #include "common.h"
@@ -20,6 +17,6 @@
 #define KEY_X			(1 << 10) // X
 #define KEY_Y			(1 << 11) // Y
 
-// All of this was taken from 3dbrew.org/wiki/HID_Registers
+// All of this was taken from https://3dbrew.org/wiki/HID_Registers
 
 u32 input_wait();

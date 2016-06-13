@@ -1,6 +1,3 @@
-// KGB by Wolfvak
-// HID related functions
-
 #include "common.h"
 
 u32 input_wait() {
