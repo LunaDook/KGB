@@ -2,11 +2,14 @@
 
 #include "common.h"
 
-#define FIRM_MAGIC   0x4D524946 // 'FIRM'
+#define FIRM_MAGIC   0x4D524946 // "FIRM"
 #define N3DS         (*(u8*)0x10140FFC == 7)
 
-//FIRM Header layout ( http://3dbrew.org/wiki/FIRM )
+#define O3DS_MINVER  0x38
+#define N3DS_MINVER  0x04
+#define MINVER       (N3DS ? 0x04 : 0x38)
 
+//FIRM Header layout from 3dbrew.org/wiki/FIRM
 /** FIRM section structure
 OFFSET	SIZE			DESCRIPTION
 0x000	4				Magic 'FIRM'
@@ -32,7 +35,7 @@ typedef struct firm_section
     u32 load_address;
     u32 size;
     u32 processor_type;
-    u8 sha256_hash[0x20];
+    u8  sha256_hash[0x20];
 } firm_section;
 
 typedef struct firm_header
@@ -41,12 +44,13 @@ typedef struct firm_header
     u32 reserved1;
     u32 arm11_entry;
     u32 arm9_entry;
-    u8 reserved2[0x30];
+    u8  reserved2[0x30];
     firm_section section[4];
-	//u8 rsa2048_signature[0x100]; // Unused in KGB
+	//u8 rsa2048_signature[0x100]; Unused in KGB
 } firm_header;
 
 extern firm_header *firm;
 
-int load_firm(const char *firm_filename); // Loads firm_filename
+s32 load_firm();    // Loads firmware file from CTRNAND to RAM
+s32 process_firm(); // Decrypt, copy to memory and patch
 void launch_firm(); // Launches firm

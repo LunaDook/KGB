@@ -1,10 +1,9 @@
 #include "common.h"
 
-// From http://3dbrew.org/wiki/Memory_layout#ARM9_ITCM
-firm_header *firm = (firm_header*)0x01FFBB00;
+firm_header *firm = (firm_header*)0x25000000;
 
 void print_fresult(FRESULT f_ret)
-{
+{ // switch, because I got bored of seeing ints
     print("FR_");
     switch(f_ret)
     {
@@ -63,52 +62,112 @@ void print_fresult(FRESULT f_ret)
             print("TOO_MANY_OPEN_FILES");
             break;
 
-        default:
-            print("U_NUTS");
+        default: // This should never happen
+            print("U_NUTS"); // Fun fact: it already happened twice
             break;
     }
+
     print("\n");
     return;
 }
 
-int load_firm(const char *firm_filename)
+// Stubbed
+u8 check_firm_version(char *path)
 {
-	FIL firm_file;
-	FRESULT f_ret;
-	size_t bytes_read = 0;
+    return 0xFF; // TODO: Actually check the thing, right now just make sure you don't have a GW downgrade or something
+}
 
-	f_ret = f_open(&firm_file, firm_filename, FA_READ);
+s32 load_firm()
+{
+    // Path: "0:/title/00040138/00000002/content/000000??.app"
+    FRESULT f_ret;
+    DIR     content_dir;
+    FILINFO firm_info;
+    FIL     firm_file;
 
+    char path[48] = "0:/title/00040138/00000002/content";
+
+    if (N3DS) path[18] = '2'; // As soon as I add N3DS support
+
+    f_ret = f_findfirst(&content_dir, &firm_info, path, "*.app"); // Search for FIRM under the content folder
+    print("f_findfirst returned ");
+    print_fresult(f_ret);
+
+    while (f_ret == FR_OK && firm_info.fname[0]) {
+        if (check_firm_version(firm_info.fname) >= MINVER) // If the found FIRM is good
+            break;
+
+        f_ret = f_findnext(&content_dir, &firm_info); // Otherwise, keep searching
+    }
+
+    if (!firm_info.fname[0])
+        return -1; // FIRM not found (somehow...)
+
+    path[34] = '/';
+    memcpy(path + 35, firm_info.fname, 13);
+    
+    print("Using ");
+    print(path);
+    print("\n");
+
+    f_ret = f_open(&firm_file, path, FA_READ);
     print("f_open returned ");
     print_fresult(f_ret);
 
-    // Perform some sanity checks...
-	if (f_ret != FR_OK)
-		return -1;
+    if (f_ret != FR_OK)
+    {
+        f_close(&firm_file);
+        return -2;
+    }
 
-	f_ret = f_read(&firm_file, firm, 0x200, &bytes_read);
+    unsigned int firm_len = firm_info.fsize, br;
 
-    print("FIRM f_read returned ");
+    f_ret = f_read(&firm_file, (void*)firm, firm_len, &br);
+
+    print("f_read returned ");
     print_fresult(f_ret);
 
-	if (f_ret != FR_OK || bytes_read != 0x200)
-		return -2;
+    f_ret = f_close(&firm_file);
 
-    if (firm->magic != FIRM_MAGIC) // 'FIRM'
+    print("f_close returned ");
+    print_fresult(f_ret);
+
+    if (f_ret != FR_OK)
         return -3;
-	// End of sanity checks
 
+    if (br != firm_len)
+        return -4;
+
+    s32 ret = process_firm(firm_len);
+    print("process_firm returned ");
+    print_hex(ret);
+    print("\n");
+
+    if (ret < 0)
+        return -5;
+
+    return 0;
+}
+
+s32 process_firm()
+{
+    decrypt_firm_ncch((u8*)firm);
+
+	if (firm->magic != FIRM_MAGIC) // 'FIRM'
+        return -1;
+    // Check for proper decryption
 
 	// Print some information
-	print("ARM11 entrypoint located @ 0x");
+	print("\nARM11 entrypoint located @ ");
 	print_hex(firm->arm11_entry);
-	print("\nARM9 entrypoint located @ 0x");
+	print("\nARM9 entrypoint located @ ");
 	print_hex(firm->arm9_entry);
 	print("\n");
 
 	if (N3DS) // Skip arm9loader
 	{
-		print("new 3DS Detected! Fixing ARM9 entrypoint...\n");
+		print("N3DS Detected! Fixing ARM9 entrypoint...\n");
+        // TODO: Run arm9loader here
 		firm->arm9_entry = 0x0801B01C;
 	}
 
@@ -116,38 +175,36 @@ int load_firm(const char *firm_filename)
 	// Nowadays, only sections used are 0, 1, and 2 for NFIRM
 	for (u32 id = 0; id < 4 && firm->section[id].size; id++)
 	{
-		print("Section ");
+		print("\nSection ");
         print_hex(id);
-        print(":\n");
 
-		f_lseek(&firm_file, firm->section[id].byte_offset); // Seek to the beggining of the section
-		f_read(&firm_file, (void*)firm->section[id].load_address, firm->section[id].size, &bytes_read); // Read the section to its destination address
-
-        print("Dest: 0x");
+        print(":\nDest: ");
 		print_hex(firm->section[id].load_address);
-		print(", len: 0x");
+		print(", len: ");
 		print_hex(firm->section[id].size);
-		print(", offset: 0x");
+		print(", offset: ");
 		print_hex(firm->section[id].byte_offset);
 		print("\n");
 
-        // Doubt this'll ever happen, but just in case
-        if (bytes_read != firm->section[id].size)
-            print("WARNING! Wrong section size read!\n");
+        memcpy((u8*)firm->section[id].load_address, (u8*)firm + firm->section[id].byte_offset, firm->section[id].size);
 	}
 
-	f_close(&firm_file);
-	return 1;
+    s32 pch_ret = patch_firmware();
+    print("\npatch_firmware returned ");
+    print_hex(pch_ret);
+    print("\n");
+
+	return 0;
 }
 
 void launch_firm()
 {
-    print("Setting ARM11 entrypoint to 0x");
+    print("Setting ARM11 entrypoint to ");
     print_hex(firm->arm11_entry);
     print("\n");
 	*(u32*)0x1FFFFFF8 = firm->arm11_entry;
 
-    print("Executing ARM9 entrypoint @ 0x");
+    print("Executing ARM9 entrypoint @ ");
 	print_hex(firm->arm9_entry);
 	((void (*)())firm->arm9_entry)();
 }

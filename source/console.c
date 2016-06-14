@@ -47,6 +47,8 @@ void print_hex(const u32 n)
 {
 	char c, i;
 
+    print("0x");
+
 	for (i = 2; i < 9; i += 2) // Pad to 1 byte
 	{
 		if ((n >> (i*4)) == 0) // TODO: Mix the statements

@@ -25,12 +25,12 @@ typedef volatile s16  vs16;
 typedef volatile s32  vs32;
 typedef volatile s64  vs64;
 
-#include <ctr9/aes.h>
 #include <ctr9/ctr_system.h>
 #include <ctr9/i2c.h>
 #include <ctr9/io.h>
 #include <ctr9/io/ctr_fatfs.h>
 
+#include "crypto.h"
 #include "console.h"
 #include "draw.h"
 #include "firm.h"
@@ -40,4 +40,3 @@ typedef volatile s64  vs64;
 
 void print_fresult(FRESULT f_ret);
 void error(const char *err_msg);
-int decrypt_firm_ncch(char *buffer);
