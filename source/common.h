@@ -29,14 +29,18 @@ typedef volatile s64  vs64;
 #include <ctr9/i2c.h>
 #include <ctr9/io.h>
 #include <ctr9/io/ctr_fatfs.h>
+#include <ctr9/sha.h>
 
-#include "crypto.h"
 #include "console.h"
 #include "draw.h"
 #include "firm.h"
+#include "crypto.h"
 #include "font.h"
 #include "hid.h"
 #include "patcher.h"
+#include "printf.h"
+
+#define SECTOR_SIZE 0x200
 
 void print_fresult(FRESULT f_ret);
-void error(const char *err_msg);
+void error(char *err_msg);

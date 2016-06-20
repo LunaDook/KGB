@@ -1,13 +1,12 @@
 #include "common.h"
 
-//framebuffer_t *framebuffer;
-static FATFS nand_fs;//, sd; // Disable SD, I don't need it currently
+static FATFS nand_fs;
 
-void error(const char *err_msg)
+void error(char *err_msg)
 {
-	print("ERROR: ");
-	print(err_msg);
-	print("\nPress any key to power off");
+	printf("ERROR: ");
+	printf(err_msg);
+	printf("\nPress any key to power off");
 	input_wait();
 	ctr_system_poweroff();
 }
@@ -16,10 +15,16 @@ void main()
 {
     // Initialize console output
 	console_init();
-	print("KGB\n");
+	printf("KGB\n");
+
+    if (N3DS)
+    {
+        printf("Setting key 0x05\n");
+        if (set_nctrnand_key() != 0)
+            error("N3DS key 0x05 could not be set");
+    }
 
     // Initialize IO interfaces
-    // TODO: Initialize N3DS CTRNAND keyslots
     ctr_nand_interface nand_io;
     ctr_nand_crypto_interface ctr_io;
     ctr_sd_interface sd_io;
@@ -30,21 +35,19 @@ void main()
     // Attempt to mount FAT filesystems
     FRESULT f_ret;
     f_ret = f_mount(&nand_fs, "0:", 0);
-    print("CTRNAND f_mount returned ");
+    printf("CTRNAND f_mount returned ");
     print_fresult(f_ret);
 
     if (f_ret != FR_OK)
     {
-        print("Failed to mount CTRNAND... press a key to reboot\n");
+        printf("Failed to mount CTRNAND... press a key to reboot\n");
         input_wait();
         ctr_system_reset();
     }
 
     // Attempt to load FIRM from CTRNAND
     s32 ret = load_firm();
-    print("load_firm returned ");
-    print_hex(ret);
-    print("\n");
+    printf("load_firm returned %d\n", ret);
 
 	if (ret != 0)
 		error("couldn't load firmware");
@@ -58,7 +61,7 @@ void main()
     ctr_sd_interface_destroy(&sd_io);
 
     // TODO: Add support for loading an ARM9 payload off of CTRNAND/SD (if inserted)
-	print("\nPress [A] to boot\nPress [B] to power off\nPress [Y] to reboot\n\n");
+	printf("\nPress [A] to boot\nPress [B] to power off\n\n");
 
 	u32 key;
 
@@ -68,14 +71,80 @@ void main()
 
 		if (key & KEY_A)
 		{
-			print("Booting FIRM\n");
+			printf("Booting FIRM\n");
 			launch_firm();
 		}
 
 		else if (key & KEY_B)
 			ctr_system_poweroff();
-
-        else if (key & KEY_Y)
-            ctr_system_reset();
 	}
+}
+
+void print_fresult(FRESULT f_ret)
+{ // switch, because I got bored of seeing ints
+    printf("FR_");
+    switch(f_ret)
+    {
+        case FR_OK:
+            printf("OK");
+            break;
+        case FR_DISK_ERR:
+            printf("DISK_ERR");
+            break;
+        case FR_INT_ERR:
+            printf("INT_ERR");
+            break;
+        case FR_NOT_READY:
+            printf("NOT_READY");
+            break;
+        case FR_NO_FILE:
+            printf("NO_FILE");
+            break;
+        case FR_NO_PATH:
+            printf("NO_PATH");
+            break;
+        case FR_INVALID_NAME:
+            printf("INVALID_NAME");
+            break;
+        case FR_DENIED:
+            printf("DENIED");
+            break;
+        case FR_EXIST:
+            printf("EXIST");
+            break;
+        case FR_INVALID_OBJECT:
+            printf("INVALID_OBJECT");
+            break;
+        case FR_WRITE_PROTECTED:
+            printf("WRITE_PROTECTED");
+            break;
+        case FR_INVALID_DRIVE:
+            printf("INVALID_DRIVE");
+            break;
+        case FR_NOT_ENABLED:
+            printf("NOT_ENABLED");
+            break;
+        case FR_NO_FILESYSTEM:
+            printf("NO_FILESYSTEM");
+            break;
+        case FR_TIMEOUT:
+            printf("TIMEOUT");
+            break;
+        case FR_LOCKED:
+            printf("LOCKED");
+            break;
+        case FR_NOT_ENOUGH_CORE:
+            printf("NOT_ENOUGH_CORE");
+            break;
+        case FR_TOO_MANY_OPEN_FILES:
+            printf("TOO_MANY_OPEN_FILES");
+            break;
+
+        default: // This should never happen
+            printf("U_NUTS"); // Fun fact: it already happened twice
+            break;
+    }
+
+    printf("\n");
+    return;
 }

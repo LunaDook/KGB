@@ -1,4 +1,5 @@
 #include "common.h"
+#include "loader.h"
 
 firm_header *firm;
 
@@ -29,7 +30,7 @@ s32 patch_process9(u8 *proc9_addr, u32 proc9_len)
     if (addr)
         memcpy(addr, sigpatch1, 2);
     else
-        err += 1;
+        err -= 1;
 
     // Signature patch 2
     u8 sigpat2[] = {0xB5, 0x22, 0x4D, 0x0C}, sigpatch2[] = {0x00, 0x20, 0x70, 0x47};
@@ -39,7 +40,7 @@ s32 patch_process9(u8 *proc9_addr, u32 proc9_len)
     if (addr)
         memcpy(addr - 1, sigpatch2, 4);
     else
-        err += (1 << 1);
+        err -= (1 << 1);
 
     // FIRM partition protection patch
     u8 firmprot_pattern[] = {0x65, 0x78, 0x65, 0x3A}, firmprot_pattern_[] = {0x00, 0x28, 0x01, 0xDA},
@@ -53,20 +54,45 @@ s32 patch_process9(u8 *proc9_addr, u32 proc9_len)
         if (addr_)
             memcpy(addr_, firmprot_patch, 4);
         else
-            err += (1 << 2);
+            err -= (1 << 2);
     }
 
     else
-        err += (1 << 2);
+        err -= (1 << 2);
 
     return err;
     // If I ever add more patches, the error added will be (1 << patch_n), so it'll support a maximum of 32 patches
     // Way more than enough for this
 }
 
+s32 patch_loader(u8 *section_zero_address, u32 section_zero_len)
+{
+    u32 loader_len = 0;
+    u8 str[] = "loader";
+    u8 *addr = memsearch(section_zero_address, section_zero_len, (u8*)str, 6);
+
+    if (!addr) // Not found
+        return -1;
+
+    // (addr - 0x200) is the beggining of the NCCH header
+    addr -= 0x200;
+
+    loader_len = *(u32*)(addr + 0x104) * 0x200;
+
+    // Move the rest of the section around
+    memcpy(addr + loader_cxi_len, addr + loader_len, (section_zero_address + section_zero_len) - (addr + loader_len));
+
+    // Inject the included loader replacement module
+    memcpy(addr, loader_cxi, loader_cxi_len);
+
+    return 0;
+}
+
 s32 patch_firmware()
 {
     // TODO: Actually use P9's address and not the ARM9 section
     s32 ret = patch_process9((u8*)firm->section[2].load_address, firm->section[2].size);
+
+    ret += patch_loader((u8*)firm->section[0].load_address, firm->section[0].size);
     return ret;
 }

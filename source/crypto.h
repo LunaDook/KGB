@@ -2,9 +2,10 @@
 
 #pragma once
 
-#include <stdint.h>
+#include "common.h"
 
 /**************************AES****************************/
+
 #define REG_AESCNT				((volatile u32*)0x10009000)
 #define REG_AESBLKCNT			((volatile u32*)0x10009004)
 #define REG_AESWRFIFO			((volatile u32*)0x10009008)
@@ -60,12 +61,7 @@ void aes_change_ctrmode(void* ctr, u32 fromMode, u32 toMode);
 
 void aes_batch(void* dst, const void* src, u32 blockCount);
 
-typedef enum
-{
-	NCCHTYPE_EXHEADER = 1,
-	NCCHTYPE_EXEFS = 2,
-	NCCHTYPE_ROMFS = 3,
-} ctr_ncchtypes;
+void decrypt_firm_cxi(u8 *firm_buffer);
 
-void ncch_getctr(const u8* ncch, u8* ctr);
-void decrypt_firm_ncch(u8 *firm_buffer);
+u32 decrypt_arm9bin(const u8 *header, const u8 version);
+s32 set_nctrnand_key();

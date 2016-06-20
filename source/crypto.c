@@ -1,9 +1,8 @@
 // From http://github.com/b1l1s/ctr
-// From CakesFW as well, only removed SHA/RSA related functions
+// Only removed SHA/RSA related functions
 
 #include "common.h"
 
-#include <stddef.h>
 /* original version by megazig */
 
 #ifndef __thumb__
@@ -225,45 +224,167 @@ void aes(void* dst, const void* src, u32 blockCount, void* iv, u32 mode, u32 ivM
 	}
 }
 
-void ncch_getctr(const u8 *ncch, u8 *ctr)
-{
-    //0x108   8     Partition ID
-	const u8 *partitionID = (u8*)(ncch + 0x108);
-    
-    memset(ctr, 0x00, 16);
-
-	int i;
-
-	for(i = 0; i < 8; i++)
-		ctr[i] = partitionID[7 - i]; // Convert to big endian & normal input
-
-    ctr[8] = 2; // All FIRM NCCHs I've seen have version 0x0002
+// From Decrypt9WIP
+void sha_quick(void* res, const void* src, u32 size, u32 mode) {
+    sha_init(mode);
+    sha_update(src, size);
+    sha_get(res);
 }
 
-void decrypt_firm_ncch(u8 *firm_buffer)
+// From CakesFW
+void decrypt_firm_cxi(u8 *firm_buffer)
 {
-    u8 exefs_key[16] = {0};
-    u8 exefs_iv[16]  = {0};
+    u8 exefs_key[16],
+       exefs_iv[16];
 
     memcpy(exefs_key, firm_buffer, 16);
-    ncch_getctr(firm_buffer, exefs_iv);
+
+    /** GET NCCH IV
+    0x108   8     Partition ID*/
+
+	const u8 *partitionID = (u8*)(firm_buffer + 0x108);
+
+    memset(exefs_iv, 0, 16);
+
+	for(int i = 0; i < 8; i++)
+		exefs_iv[i] = partitionID[7 - i]; // Convert to big endian & normal input
+
+    exefs_iv[8] = 2; // FIRM NCCHs use version 2 (at least 9.0-11.0 do)
 
     /**
     OFFSET	SIZE	DESCRIPTION
     0x1A0   4       ExeFS offset, in media units
     0x1A4   4       ExeFS size, in media units
-    1 mediaunit = 0x200 bytes = 512 bytes
-    */
+    1 mediaunit = 0x200 bytes */
 
-    u8 *exefs_loc = firm_buffer + (*(u32*)(firm_buffer + 0x1A0) * 0x200);
+    u8 *exefs_loc = (u8*)firm_buffer + (*(u32*)(firm_buffer + 0x1A0) * 0x200);
     u32 exefs_len = (*(u32*)(firm_buffer + 0x1A4) * 0x200);
 
-    // Set keyY for keyslot 0x2C
+    // Set keyY for slot 0x2C
     aes_setkey(0x2C, exefs_key, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+    aes_setiv(exefs_iv, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_use_keyslot(0x2C);
 
     // Decrypt FIRM ExeFS
     aes(firm_buffer - 0x200, exefs_loc, exefs_len / AES_BLOCK_SIZE, exefs_iv, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
     return;
+}
+
+u32 decrypt_arm9bin(const u8 *header, const u8 version)
+{
+    u8 slot = ((version >= 0xF) ? 0x16 : 0x15),
+       key_y[16], iv[16];
+
+    u32 arm9loader_version = 0, size = 0;
+
+    if (version == 0x0F)
+        arm9loader_version = 1;
+
+    else if (version > 0x0F)
+        arm9loader_version = 2;
+
+    memcpy(key_y, header + 0x10, 16);
+    memcpy(iv, header + 0x20, 16);
+
+    u8 *arm9_bin = (u8*)(header + 0x800);
+
+    // Apparently, engineers decided to store it as ASCII text (yes, literally text)
+    u8 *size_loc = (u8*)(header + 0x30);
+    for (u32 i = 0; size_loc[i] != 0; i++)
+        size = (size * 10) + (size_loc[i] - '0');
+
+    printf("FIRM 0x%02X, arm9loader v%d, ARM9bin size is %d bytes\n", version, arm9loader_version, size);
+
+    if (version >= 0xF)
+    {
+        u8 slot0x11key96[16] = {0x42, 0x3F, 0x81, 0x7A, 0x23, 0x52, 0x58, 0x31, 0x6E, 0x75, 0x8E, 0x3A, 0x39, 0x43, 0x2E, 0xD0},
+           slot0x16keyX[16];
+        // And there it goes...
+
+        aes_setkey(0x11, slot0x11key96, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
+        aes_use_keyslot(0x11);
+
+        aes(slot0x16keyX, header + 0x60, 1, NULL, AES_ECB_DECRYPT_MODE, 0);
+        aes_setkey(slot, slot0x16keyX, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
+    }
+
+    aes_setiv(iv, AES_INPUT_BE | AES_INPUT_NORMAL);
+    aes_setkey(slot, key_y, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    aes_use_keyslot(slot);
+    aes(arm9_bin, arm9_bin, size / AES_BLOCK_SIZE, iv, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    if(version > 0x0F)
+    {
+        // TODO: Extract the key from the ARM9 binary itself rather than hardcoding it
+        // I think I'll go with a partial key + memsearch, it'll probably be a bit slower, but safer
+        u8 keydata[16] = {0xDD, 0xDA, 0xA4, 0xC6, 0x2C, 0xC4, 0x50, 0xE9, 0xDA, 0xB6, 0x9B, 0x0D, 0x9D, 0x2A, 0x21, 0x98},
+           keyx[16];
+
+        aes_use_keyslot(0x11);
+
+        for (u32 slot = 0x19; slot < 0x20; slot++)
+        {
+            aes(keyx, keydata, 1, NULL, AES_ECB_DECRYPT_MODE, 0);
+            aes_setkey(slot, keyx, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
+            *(u8*)(keydata + 0xF) += 1;
+        }
+        printf("Updated keyX keyslots\n");
+    }
+
+    printf("ARM9 binary was decrypted successfully\n\n");
+
+    if (*(u32*)arm9_bin == ARM9_MAGIC)
+        return 0;
+
+    else return -1;
+}
+
+s32 set_nctrnand_key()
+{
+    const u8 slot0x05keyY[16] = {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
+    aes_setkey(0x05, slot0x05keyY, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+    return 0;
+
+    // NOT WORKING
+    // I'll revisit the concept one of these days, until then the key will be hardcoded unfortunately
+    /*
+    u32 firm0_offset = 0x0B130000, firm0_size = 0x00100000;
+    u8 firm_buf[firm0_size], ctr[16], cid[16], sha[32], key_y_pattern[4] = {0x4D, 0x80, 0x4F, 0x4E};
+
+    printf("Reading NAND\n");
+
+    sdmmc_nand_readsectors(firm0_offset / SECTOR_SIZE, firm0_size / SECTOR_SIZE, (u8*)firm_buf);
+
+    printf("Obtaining IV\n");
+
+    sdmmc_get_cid(1, (u32*)cid);
+    sha_quick(sha, cid, 16, SHA256_MODE);
+    memcpy(ctr, sha, 16);
+    aes_advctr(ctr, firm0_offset / AES_BLOCK_SIZE, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    printf("Decrypting FIRM0\n");
+
+    aes_use_keyslot(0x06);
+    aes_setiv(ctr, AES_INPUT_BE | AES_INPUT_NORMAL);
+    aes((u8*)firm_buf, (u8*)firm_buf, firm0_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    printf("Decrypting arm9bin\n");
+
+    firm_header *firm0 = (firm_header*)firm_buf;
+
+    u8* arm9_loc = (u8*)firm + firm0->section[2].byte_offset;
+    decrypt_arm9bin(arm9_loc, 0); // Version is either 8.1 or 9.0, so 0x00 will do just fine
+
+    printf("Finding key\n");
+    u8 *key_y_loc = NULL;
+    key_y_loc = memsearch(arm9_loc, firm0->section[2].size, key_y_pattern, 4);
+
+    if (!key_y_loc)
+        return -1;
+
+    aes_setkey(0x05, key_y_loc, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+    printf("Slot0x05keyY set successfully!\n");
+    */
 }
