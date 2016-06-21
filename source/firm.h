@@ -6,8 +6,8 @@
 #define ARM9_MAGIC   0x47704770 // 'pGpG'
 #define N3DS         (*(u8*)0x10140FFC == 7)
 
-#define O3DS_MINVER  0x2E // 7.0
-#define N3DS_MINVER  0x04 // 9.0
+#define O3DS_MINVER  0x1E // 4.0
+#define N3DS_MINVER  0x00 // 8.1
 #define MINVER       (N3DS ? 0x04 : 0x38)
 
 //FIRM Header layout from 3dbrew.org/wiki/FIRM

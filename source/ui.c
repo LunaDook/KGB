@@ -1,5 +1,93 @@
+#include "common.h"
 
-// Font: ROM8PIX.pf
+framebuffer_t *framebuffer = (framebuffer_t *)0x23FFFE00;
+u16 console_x = 0, console_y = 0;
+
+// Wouldn't rely too much on this function...
+u32 wait_for_key()
+{
+    u32 pad = HID_PAD, newpad;
+    while(1)
+    {
+        newpad = HID_PAD;
+        if (newpad != pad)
+            break;
+    }
+
+    return newpad;
+}
+
+void clear_screen(const u8 *fb, const u32 rgb)
+{
+	size_t sz = fb_sz(fb)*3, i = 0;
+
+	while (i < sz)
+	{
+		*(u8*)(fb + i++) = rgb & 0xFF;
+		*(u8*)(fb + i++) = (rgb >> 8) & 0xFF;
+		*(u8*)(fb + i++) = (rgb >> 16) & 0xFF;
+	}
+}
+
+void draw_char(u8 *fb, const u16 x, const u16 y, const u8 c)
+{
+	u16 _x, _y, _c = 0;
+
+	if (c < 0x80)
+		_c = c*8;
+
+	for(_y = 0; _y < FONT_Y; _y++)
+	{
+		u8 mask = 0b10000000;
+		u8 row = font[_y + _c];
+		for(_x = 0; _x < FONT_X; _x++, mask >>= 1)
+		{
+			if(row & mask)
+				set_pixel(fb, x + _x, y + _y, 0xFFFFFF);
+		}
+	}
+}
+
+void scroll_up(u8 *fb)
+{
+    for (u32 i = 0; i < 400; i++) // 320 if bottom screen
+    {
+        memmove(fb + i*720 + 24, fb + i*720, 696);
+        memset(fb + i*720, 0, 24); 
+    }
+}
+
+inline void console_putc(void *fb, char c)
+{
+	if(c == '\n' || (console_x + FONT_X) > TOP_WIDTH)
+	{
+		console_x = 0;
+		console_y += FONT_Y;
+	}
+
+	if(console_y >= HEIGHT)
+    {
+        scroll_up(framebuffer->top_left);
+        console_x = 0;
+        console_y = (HEIGHT - FONT_Y);
+    }
+
+	if(c == '\r' || c == '\n') return;
+
+	draw_char(fb, console_x, console_y, c);
+	console_x += FONT_X;
+	return;
+}
+
+void console_init()
+{
+	console_x  = 0;
+	console_y  = 0;
+
+	clear_screen(framebuffer->top_left, 0x00);
+    init_printf(framebuffer->top_left, console_putc);
+	return;
+}
 
 const char font[1024] =
 {

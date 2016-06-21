@@ -27,20 +27,20 @@ typedef volatile s64  vs64;
 
 #include <ctr9/ctr_system.h>
 #include <ctr9/i2c.h>
+#include <ctr9/ctr_interrupt.h>
 #include <ctr9/io.h>
 #include <ctr9/io/ctr_fatfs.h>
 #include <ctr9/sha.h>
 
-#include "console.h"
-#include "draw.h"
+#include "ui.h"
 #include "firm.h"
 #include "crypto.h"
-#include "font.h"
-#include "hid.h"
 #include "patcher.h"
 #include "printf.h"
 
 #define SECTOR_SIZE 0x200
+#define SD_INSERTED ((*(u8*)0x1000601C) & (1 << 5))
 
+void chainload(const char *payload_path);
 void print_fresult(FRESULT f_ret);
 void error(char *err_msg);

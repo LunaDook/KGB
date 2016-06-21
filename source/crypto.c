@@ -349,13 +349,31 @@ s32 set_nctrnand_key()
 
     // NOT WORKING
     // I'll revisit the concept one of these days, until then the key will be hardcoded unfortunately
-    /*
+    /*u8 *firm_buffer = (u8*)0x27000000, key_y_pattern[4] = {0x4D, 0x80, 0x4F, 0x4E};;
+    firm_header *firm_hdr = (firm_header*)0x27000000;
+
+    dump_firm0((u8*)firm_buffer);
+    u8 *arm9_loc = (u8*)firm_buffer + firm_hdr->section[2].byte_offset;
+    decrypt_arm9bin((u8*)firm_buffer + firm_hdr->section[2].byte_offset, 0x04);
+    u8 *key_y_loc = memsearch(arm9_loc, firm_hdr->section[2].size, key_y_pattern, 4);
+    if (!key_y_loc)
+        return -1;
+
+    else
+        aes_setkey(0x05, key_y_loc, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+
+    printf("Slot0x05keyY set\n");
+    return 0;*/
+}
+
+void dump_firm0(u8 *firm_buffer)
+{
     u32 firm0_offset = 0x0B130000, firm0_size = 0x00100000;
-    u8 firm_buf[firm0_size], ctr[16], cid[16], sha[32], key_y_pattern[4] = {0x4D, 0x80, 0x4F, 0x4E};
+    u8 ctr[16], cid[16], sha[32];
 
     printf("Reading NAND\n");
 
-    sdmmc_nand_readsectors(firm0_offset / SECTOR_SIZE, firm0_size / SECTOR_SIZE, (u8*)firm_buf);
+    sdmmc_nand_readsectors(firm0_offset / SECTOR_SIZE, firm0_size / SECTOR_SIZE, (u8*)firm_buffer);
 
     printf("Obtaining IV\n");
 
@@ -368,23 +386,5 @@ s32 set_nctrnand_key()
 
     aes_use_keyslot(0x06);
     aes_setiv(ctr, AES_INPUT_BE | AES_INPUT_NORMAL);
-    aes((u8*)firm_buf, (u8*)firm_buf, firm0_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
-
-    printf("Decrypting arm9bin\n");
-
-    firm_header *firm0 = (firm_header*)firm_buf;
-
-    u8* arm9_loc = (u8*)firm + firm0->section[2].byte_offset;
-    decrypt_arm9bin(arm9_loc, 0); // Version is either 8.1 or 9.0, so 0x00 will do just fine
-
-    printf("Finding key\n");
-    u8 *key_y_loc = NULL;
-    key_y_loc = memsearch(arm9_loc, firm0->section[2].size, key_y_pattern, 4);
-
-    if (!key_y_loc)
-        return -1;
-
-    aes_setkey(0x05, key_y_loc, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-    printf("Slot0x05keyY set successfully!\n");
-    */
+    aes((u8*)firm_buffer, (u8*)firm_buffer, firm0_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 }

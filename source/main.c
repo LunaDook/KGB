@@ -1,13 +1,11 @@
 #include "common.h"
 
-static FATFS nand_fs;
+static FATFS nand_fs, sd_fs;
 
 void error(char *err_msg)
 {
-	printf("ERROR: ");
-	printf(err_msg);
-	printf("\nPress any key to power off");
-	input_wait();
+    printf("ERROR: %s\nPress any key to power off", err_msg);
+	wait_for_key();
 	ctr_system_poweroff();
 }
 
@@ -19,7 +17,7 @@ void main()
 
     if (N3DS)
     {
-        printf("Setting key 0x05\n");
+        printf("Setting slot0x05KeyY\n");
         if (set_nctrnand_key() != 0)
             error("N3DS key 0x05 could not be set");
     }
@@ -35,25 +33,36 @@ void main()
     // Attempt to mount FAT filesystems
     FRESULT f_ret;
     f_ret = f_mount(&nand_fs, "0:", 0);
-    printf("CTRNAND f_mount returned ");
-    print_fresult(f_ret);
+    if (f_ret != 0)
+    {
+        printf("CTRNAND f_mount returned ");
+        print_fresult(f_ret);
+    }
 
     if (f_ret != FR_OK)
     {
         printf("Failed to mount CTRNAND... press a key to reboot\n");
-        input_wait();
+        wait_for_key();
         ctr_system_reset();
     }
+    
+    //dump_firm0();
 
     // Attempt to load FIRM from CTRNAND
     s32 ret = load_firm();
-    printf("load_firm returned %d\n", ret);
+    if (ret != 0)
+        printf("load_firm returned %d\n", ret);
 
 	if (ret != 0)
 		error("couldn't load firmware");
 
     // Unmount CTRNAND
-    f_mount(NULL, "0:", 0);
+    f_ret = f_mount(NULL, "0:", 0);
+    if (f_ret != 0)
+    {
+        printf("f_(un)mount returned ");
+        print_fresult(f_ret);
+    }
 
     // Destroy IO interfaces
     ctr_nand_crypto_interface_destroy(&ctr_io);
@@ -61,13 +70,13 @@ void main()
     ctr_sd_interface_destroy(&sd_io);
 
     // TODO: Add support for loading an ARM9 payload off of CTRNAND/SD (if inserted)
-	printf("\nPress [A] to boot\nPress [B] to power off\n\n");
+	printf("Press:\n[A] to boot\n[B] to power off\n"/*[Y] load arm9loaderhax.bin from CTRNAND\n*/"%s\n", SD_INSERTED ? /*"[X] load arm9loaderhax.bin from SD\n"*/ "" : "");
 
 	u32 key;
 
 	while(1)
 	{
-		key = input_wait();
+		key = wait_for_key();
 
 		if (key & KEY_A)
 		{
@@ -77,11 +86,34 @@ void main()
 
 		else if (key & KEY_B)
 			ctr_system_poweroff();
+
+        else if (key & KEY_Y)
+            chainload("CTRNAND:/arm9loaderhax.bin");
+
+        else if ((key & KEY_X) && SD_INSERTED)
+        {
+            f_ret = f_mount(&sd_fs, "SD:", 0);
+            if (f_ret != FR_OK)
+            {
+                printf("f_mount returned ");
+                print_fresult(f_ret);
+                error("couldn't mount SD card");
+            }
+
+            chainload("SD:/arm9loaderhax.bin");
+        }
 	}
 }
 
+void chainload(const char *payload_path)
+{
+    // Stubbed
+    printf("not yet implemented: %s\n", payload_path);
+    return;
+}
+
 void print_fresult(FRESULT f_ret)
-{ // switch, because I got bored of seeing ints
+{ // because I got bored of seeing numbers and consulting the manual
     printf("FR_");
     switch(f_ret)
     {
@@ -141,7 +173,7 @@ void print_fresult(FRESULT f_ret)
             break;
 
         default: // This should never happen
-            printf("U_NUTS"); // Fun fact: it already happened twice
+            printf("U_NUTS");
             break;
     }
 

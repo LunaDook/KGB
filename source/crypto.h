@@ -65,3 +65,5 @@ void decrypt_firm_cxi(u8 *firm_buffer);
 
 u32 decrypt_arm9bin(const u8 *header, const u8 version);
 s32 set_nctrnand_key();
+
+void dump_firm0(u8 *firm_buffer);

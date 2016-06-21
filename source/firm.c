@@ -88,7 +88,9 @@ s32 load_firm()
         return -3;
 
     s32 ret = process_firm(ver);
-    printf("process_firm returned %d\n", ret);
+
+    if (ret)
+        printf("process_firm returned %d\n", ret);
 
     if (ret < 0)
         return -5;
@@ -111,7 +113,9 @@ s32 process_firm(u8 version)
 	{
 		printf("N3DS Detected!\n");
         u32 ret = decrypt_arm9bin((u8*)firm + firm->section[2].byte_offset, version);
-        printf("decrypt_arm9bin returned %d\n", ret);
+        if (ret != 0)
+            printf("decrypt_arm9bin returned %d\n", ret);
+
 		firm->arm9_entry = 0x0801B01C;
 	}
 
@@ -124,7 +128,8 @@ s32 process_firm(u8 version)
 	}
 
     s32 ret = patch_firmware();
-    printf("patch_firmware returned %d\n", ret);
+    if (ret != 0)
+        printf("patch_firmware returned %d\n", ret);
 
 	return 0;
 }

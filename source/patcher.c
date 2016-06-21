@@ -69,28 +69,28 @@ s32 patch_loader(u8 *section_zero_address, u32 section_zero_len)
 {
     u32 loader_len = 0;
     u8 str[] = "loader";
-    u8 *addr = memsearch(section_zero_address, section_zero_len, (u8*)str, 6);
+    u8 *ldr_addr = memsearch(section_zero_address, section_zero_len, (u8*)str, 6);
 
-    if (!addr) // Not found
+    if (!ldr_addr) // Not found
         return -1;
 
-    // (addr - 0x200) is the beggining of the NCCH header
-    addr -= 0x200;
+    // (ldr_addr - 0x200) is the beggining of the NCCH header
+    ldr_addr -= 0x200;
 
-    loader_len = *(u32*)(addr + 0x104) * 0x200;
+    loader_len = *(u32*)(ldr_addr + 0x104) * 0x200;
 
-    // Move the rest of the section around
-    memcpy(addr + loader_cxi_len, addr + loader_len, (section_zero_address + section_zero_len) - (addr + loader_len));
+    // Move the rest of the section backwards
+    memcpy(ldr_addr + loader_cxi_len, ldr_addr + loader_len, section_zero_address + section_zero_len - (ldr_addr + loader_len));
 
     // Inject the included loader replacement module
-    memcpy(addr, loader_cxi, loader_cxi_len);
+    memcpy(ldr_addr, loader_cxi, loader_cxi_len);
 
     return 0;
 }
 
 s32 patch_firmware()
 {
-    // TODO: Actually use P9's address and not the ARM9 section
+    // TODO: Actually use the P9 address and not the ARM9 section
     s32 ret = patch_process9((u8*)firm->section[2].load_address, firm->section[2].size);
 
     ret += patch_loader((u8*)firm->section[0].load_address, firm->section[0].size);

@@ -10,9 +10,9 @@ include $(DEVKITARM)/3ds_rules
 
 TARGET 		:=  stage2
 BUILD		:=	build
-SOURCES		:=	source source/fatfs source/fatfs/sdmmc
+SOURCES		:=	source
 DATA		:=	data
-INCLUDES	:=	source source/fatfs source/fatfs/sdmmc
+INCLUDES	:=	source
 
 #---------------------------------------------------------------------------------
 # Setup some defines
