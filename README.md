@@ -10,9 +10,11 @@ This project uses [libctr9_io](https://github.com/gemarcano/libctr9_io) and assu
 Basically, make any modifications you want under '/source' and run 'make'. It should generate a file called 'arm9loaderhax.bin', rename it to 'kgb', xxd that file (xxd -i kgb > kgb.h) and copy kgb.h to '/stage2/source'.
 Run 'make' inside 'stage2' and it should generate 'stage2.bin'. This file is your stage2 payload.
 
+For more details on how to compile the loader fork, check out its README.
+
 Now it supports reading and decrypting firmware files from CTRNAND, and actually doesn't mount the SD card at all.
 
-Special thanks to a lot of people (you know who you are :3)
+Special thanks to a lot of people (you know who you are :3). For more details, check CREDITS.md
 
 ###### Small note
 Don't worry about arm11.h, it was generated from a standard arm9loaderhax repo (delebile's one to be precise) and converted using xxd, so if you want its source go here https://github.com/delebile/arm9loaderhax/blob/master/screen_init/source/screen_init/screen_init.c
