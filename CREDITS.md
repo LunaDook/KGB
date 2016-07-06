@@ -14,6 +14,8 @@ AuroraWright for the great idea of using memory searching functions in order to 
 
 yifanlu for his 3ds_injector, which I also use to provide RF patches and such.
 
+Tinivi for screen shutdown code (fixes N3DS 3D bug).
+
 # Answers
 
 Well, this is a pretty short list:
@@ -24,7 +26,7 @@ d0k3 for answering my questions related to FIRM0 decryption (sorry it didn't wor
 
 # Testers
 
-Al3x_10m for being the best one at this :3. Also for testing both on O3DS and N3DS (and it's hideous uSD card slot).
+Al3x_10m for being the best one at this :3. Also for testing both on O3DS and N3DS (and its hideous uSD card slot).
 
 Lucar for being insane enough to test FIRM protection without a hardmod and overall help.
 

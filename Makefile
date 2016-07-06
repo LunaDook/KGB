@@ -6,15 +6,28 @@ ifeq ($(strip $(DEVKITARM)),)
 $(error "Please set DEVKITARM in your environment. export DEVKITARM=<path to>devkitARM")
 endif
 
-include $(DEVKITARM)/3ds_rules
+include $(DEVKITARM)/ds_rules
 
-NAME		:=	kgb
-
+#---------------------------------------------------------------------------------
+# TARGET is the name of the output
+# BUILD is the directory where object files & intermediate files will be placed
+# SOURCES is a list of directories containing source code
+# DATA is a list of directories containing data files
+# INCLUDES is a list of directories containing header files
+# SPECS is the directory containing the important build and link files
+#---------------------------------------------------------------------------------
 TARGET 		:=  arm9loaderhax
 BUILD		:=	build
 SOURCES		:=	source
 DATA		:=	data
 INCLUDES	:=	source
+
+NAME		:=  KGB
+CHAIN		:=  chainloader
+STAGE2		:=  stage2
+RELEASEDIR  :=  release
+
+CHAIN_H		:=  $(CURDIR)/$(SOURCES)/$(CHAIN).h
 
 #---------------------------------------------------------------------------------
 # Setup some defines
@@ -23,18 +36,32 @@ INCLUDES	:=	source
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
+ARCH	 :=	-marm -march=armv5te -mtune=arm946e-s
 
-LDFLAGS += --specs=$(CURDIR)/../$(NAME).specs -L$(CTRARM9)/lib
+CFLAGS   := $(ARCH) \
+			-g -flto -Wall -O2 \
+			-fomit-frame-pointer -ffast-math \
+			-std=c99
 
-ASFLAGS := -mlittle-endian -mcpu=arm946e-s -march=armv5te
-CFLAGS := -L$(CTRARM9)/lib -I$(CTRARM9)/include -O2 -flto -Wall -Wextra -MMD -MP -marm $(ASFLAGS) -fno-builtin -fshort-wchar -std=c11 -Wno-main -ffast-math
+CFLAGS	 += $(INCLUDE) -DARM9
+CFLAGS	 +=	-DBUILD_NAME="\"$(NAME) (`date +'%Y/%m/%d'`)\""
 
-LIBS   := -lctr9
+CXXFLAGS := $(CFLAGS) -fno-rtti -fno-exceptions
+
+LDFLAGS  := -nostartfiles -T../linker.ld -g $(ARCH) -Wl,-Map,$(notdir $*.map)
+ASFLAGS	 :=	-g $(ARCH)
+
 #---------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level containing
 # include and lib
 #---------------------------------------------------------------------------------
-LIBDIRS	:=
+LIBDIRS	:= $(CTRARM9)
+
+#---------------------------------------------------------------------------------
+# any extra libraries we wish to link with the project (order is important)
+#---------------------------------------------------------------------------------
+LIBS    := -lctr9
+
 
 #---------------------------------------------------------------------------------
 # no real need to edit anything past this point unless you need to add additional
@@ -44,7 +71,6 @@ ifneq ($(BUILD),$(notdir $(CURDIR)))
 #---------------------------------------------------------------------------------
 
 export OUTPUT	:=	$(CURDIR)/$(TARGET)
-export DATA     :=      data
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
@@ -71,7 +97,7 @@ endif
 #---------------------------------------------------------------------------------
 
 export OFILES	:= $(addsuffix .o,$(BINFILES)) \
-			$(SFILES:.s=.o) $(CPPFILES:.cpp=.o) $(CFILES:.c=.o) 
+			$(SFILES:.s=.o) $(CPPFILES:.cpp=.o) $(CFILES:.c=.o)
 
 export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 			$(foreach dir,$(LIBDIRS),-I$(dir)/include) \
@@ -79,37 +105,54 @@ export INCLUDE	:=	$(foreach dir,$(INCLUDES),-I$(CURDIR)/$(dir)) \
 
 export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 
-.PHONY: $(BUILD) all clean
+.PHONY: $(BUILD) all $(CHAIN) release clean
 
+#---------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(BUILD):
+$(BUILD): $(CHAIN) $(CHAIN_H)
 	@[ -d $(OUTPUT_D) ] || mkdir -p $(OUTPUT_D)
 	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
 
+$(CHAIN):
+	@make --no-print-directory -C $(CURDIR)/$(CHAIN) -f $(CURDIR)/$(CHAIN)/Makefile
+
+# Holy crap this is an ugly hack
+$(CHAIN_H): $(CHAIN)
+	@xxd -u -i $(CHAIN)/$(CHAIN).bin > $(CHAIN)/$(CHAIN).h
+	@sed 's/$(CHAIN)_$(CHAIN)/$(CHAIN)/g' $(CHAIN)/$(CHAIN).h > $(CHAIN_H)
+	@rm -rf $(CHAIN)/$(CHAIN).h
+
+release: all
+	@cp -a $(CURDIR)/$(TARGET).bin $(CURDIR)/$(RELEASEDIR)/$(TARGET).bin
+	@echo Done!
+
 #---------------------------------------------------------------------------------
 clean:
-	@echo clean ...
-	@rm -fr $(DATA) $(BUILD) $(OUTPUT).elf $(OUTPUT).bin
+	@make --no-print-directory -C $(CURDIR)/$(CHAIN) -f $(CURDIR)/$(CHAIN)/Makefile clean
+	@rm -rf $(CURDIR)/$(SOURCES)/$(CHAIN).h $(BUILD) $(OUTPUT).bin $(CURDIR)/$(RELEASEDIR)
+	@echo cleaned $(NAME)
 
 #---------------------------------------------------------------------------------
 else
 
 DEPENDS	:=	$(OFILES:.o=.d)
 
+#---------------------------------------------------------------------------------
+# main targets
+#---------------------------------------------------------------------------------
 $(OUTPUT).bin	:	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
 
+#---------------------------------------------------------------------------------
 %.bin: %.elf
-	$(OBJCOPY) -S -O binary $< $@
-	@echo built ... $(notdir $@)
-
-%.bin.o	:	%.bin
-	@echo $(notdir $<)
-	@$(bin2o)
+	@$(OBJCOPY) --set-section-flags .bss=alloc,load,contents -O binary $< $@
+	@echo built $(NAME)
+	@rm -f $(OUTPUT).elf
 
 -include $(DEPENDS)
+
 
 #---------------------------------------------------------------------------------------
 endif

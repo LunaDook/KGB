@@ -296,7 +296,7 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
 
     printf("FIRM 0x%02X, arm9loader v%d, ARM9bin size is %d bytes\n", version, arm9loader_version, size);
 
-    if (version >= 0xF)
+    if (arm9loader_version)
     {
         u8 slot0x11key96[16] = {0x42, 0x3F, 0x81, 0x7A, 0x23, 0x52, 0x58, 0x31, 0x6E, 0x75, 0x8E, 0x3A, 0x39, 0x43, 0x2E, 0xD0},
            slot0x16keyX[16];
@@ -315,7 +315,7 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
     aes_use_keyslot(slot);
     aes(arm9_bin, arm9_bin, size / AES_BLOCK_SIZE, iv, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
-    if(version > 0x0F)
+    if(arm9loader_version >= 2)
     {
         // TODO: Extract the key from the ARM9 binary itself rather than hardcoding it
         // I think I'll go with a partial key + memsearch, it'll probably be a bit slower, but safer
@@ -330,10 +330,7 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
             aes_setkey(slot, keyx, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
             *(u8*)(keydata + 0xF) += 1;
         }
-        printf("Updated keyX keyslots\n");
     }
-
-    printf("ARM9 binary was decrypted successfully\n\n");
 
     if (*(u32*)arm9_bin == ARM9_MAGIC)
         return 0;
@@ -343,30 +340,12 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
 
 s32 set_nctrnand_key()
 {
-    const u8 slot0x05keyY[16] = {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
+    const u8 slot0x05keyY[] = {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
     aes_setkey(0x05, slot0x05keyY, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
     return 0;
-
-    // NOT WORKING
-    // I'll revisit the concept one of these days, until then the key will be hardcoded unfortunately
-    /*u8 *firm_buffer = (u8*)0x27000000, key_y_pattern[4] = {0x4D, 0x80, 0x4F, 0x4E};;
-    firm_header *firm_hdr = (firm_header*)0x27000000;
-
-    dump_firm0((u8*)firm_buffer);
-    u8 *arm9_loc = (u8*)firm_buffer + firm_hdr->section[2].byte_offset;
-    decrypt_arm9bin((u8*)firm_buffer + firm_hdr->section[2].byte_offset, 0x04);
-    u8 *key_y_loc = memsearch(arm9_loc, firm_hdr->section[2].size, key_y_pattern, 4);
-    if (!key_y_loc)
-        return -1;
-
-    else
-        aes_setkey(0x05, key_y_loc, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-
-    printf("Slot0x05keyY set\n");
-    return 0;*/
 }
 
-void dump_firm0(u8 *firm_buffer)
+/*void dump_firm0(u8 *firm_buffer)
 {
     u32 firm0_offset = 0x0B130000, firm0_size = 0x00100000;
     u8 ctr[16], cid[16], sha[32];
@@ -387,4 +366,4 @@ void dump_firm0(u8 *firm_buffer)
     aes_use_keyslot(0x06);
     aes_setiv(ctr, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes((u8*)firm_buffer, (u8*)firm_buffer, firm0_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
-}
+}*/

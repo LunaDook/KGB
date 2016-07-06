@@ -16,12 +16,12 @@ include $(DEVKITARM)/ds_rules
 # INCLUDES is a list of directories containing header files
 # SPECS is the directory containing the important build and link files
 #---------------------------------------------------------------------------------
-TARGET 		:=  stage2
+TARGET 		:=  chainloader
 BUILD		:=	build
-SOURCES		:=	source
-INCLUDES	:=	source
+SOURCES		:=	src
+INCLUDES	:=	src
 
-NAME        :=  stage2
+NAME        :=  loader
 
 #---------------------------------------------------------------------------------
 # Setup some defines

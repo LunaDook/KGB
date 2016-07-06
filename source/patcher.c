@@ -11,8 +11,8 @@ u8 *memsearch(u8* search_start, u32 search_len, u8* search_pattern, u32 pattern_
 
     for (u32 i = 0; i < (search_len - pattern_len); i++)
     {
-        if (memcmp(search_start + i, search_pattern, pattern_len) == 0)
-            return (search_start + i);
+        if (memcmp(&search_start[i], search_pattern, pattern_len) == 0)
+            return &search_start[i];
     }
 
     return NULL;
@@ -61,29 +61,26 @@ s32 patch_process9(u8 *proc9_addr, u32 proc9_len)
         err -= (1 << 2);
 
     return err;
-    // If I ever add more patches, the error added will be (1 << patch_n), so it'll support a maximum of 32 patches
-    // Way more than enough for this
 }
 
-s32 patch_loader(u8 *section_zero_address, u32 section_zero_len)
+s32 patch_loader(u8 *sect_addr, u32 sect_len, char *mod_name, u8 *mod_cxi, u32 mod_len)
 {
-    u32 loader_len = 0;
-    u8 str[] = "loader";
-    u8 *ldr_addr = memsearch(section_zero_address, section_zero_len, (u8*)str, 6);
+    u32 mod_len_ = 0;
+    u8 *mod_addr = memsearch(sect_addr, sect_len, (u8*)mod_name, strlen(mod_name));
 
-    if (!ldr_addr) // Not found
+    if (!mod_addr) // Not found
         return -1;
 
-    // (ldr_addr - 0x200) is the beggining of the NCCH header
-    ldr_addr -= 0x200;
+    // (mod_addr - 0x200) is the beggining of the NCCH header
+    mod_addr -= 0x200;
 
-    loader_len = *(u32*)(ldr_addr + 0x104) * 0x200;
+    mod_len_ = (u32)(mod_addr[0x104]) * 0x200;
 
     // Move the rest of the section backwards
-    memcpy(ldr_addr + loader_cxi_len, ldr_addr + loader_len, section_zero_address + section_zero_len - (ldr_addr + loader_len));
+    memcpy(mod_addr + mod_len, mod_addr + mod_len_, sect_addr + sect_len - (mod_addr + mod_len_));
 
     // Inject the included loader replacement module
-    memcpy(ldr_addr, loader_cxi, loader_cxi_len);
+    memcpy(mod_addr, mod_cxi, mod_len);
 
     return 0;
 }
@@ -93,6 +90,6 @@ s32 patch_firmware()
     // TODO: Actually use the P9 address and not the ARM9 section
     s32 ret = patch_process9((u8*)firm->section[2].load_address, firm->section[2].size);
 
-    ret += patch_loader((u8*)firm->section[0].load_address, firm->section[0].size);
+    ret += patch_loader((u8*)firm->section[0].load_address, firm->section[0].size, "loader", loader_cxi, loader_cxi_len);
     return ret;
 }
