@@ -1,11 +1,24 @@
 #include "common.h"
 #include "chainloader.h"
 
-static FATFS nand_fs, sd_fs;
+FATFS nand_fs, sd_fs;
+
+ctr_nand_interface nand_io;
+ctr_nand_crypto_interface ctr_io;
+ctr_sd_interface sd_io;
+
+void cleanup()
+{
+    ctr_nand_interface_destroy(&nand_io);
+    ctr_nand_crypto_interface_destroy(&ctr_io);
+    ctr_sd_interface_destroy(&sd_io);
+    return;
+}
 
 void error(char *err_msg)
 {
     printf("ERROR: %s\nPress any key to power off", err_msg);
+    cleanup();
 	wait_for_key();
 	ctr_system_poweroff();
 }
@@ -16,6 +29,10 @@ int main()
 	console_init();
 	printf(BUILD_NAME "\n");
 
+    // Initialize IO interfaces
+    ctr_fatfs_initialize(&nand_io, &ctr_io, NULL, &sd_io);
+    ctr_fatfs_default_setup(&ctr_io, NULL, &sd_io);
+
     if (N3DS)
     {
         printf("Setting N3DS CTRNAND key\n");
@@ -23,17 +40,10 @@ int main()
             error("N3DS key 0x05 could not be set");
     }
 
-    // Initialize IO interfaces
-    ctr_nand_interface nand_io;
-    ctr_nand_crypto_interface ctr_io;
-    ctr_sd_interface sd_io;
-
-    ctr_fatfs_initialize(&nand_io, &ctr_io, NULL, &sd_io);
-    ctr_fatfs_default_setup(&ctr_io, NULL, &sd_io);
-
     // Attempt to mount FAT filesystems
+    const char ctrnand_drive[] = "CTRNAND:", sd_drive[] = "SD:";
     FRESULT f_ret;
-    f_ret = f_mount(&nand_fs, "CTRNAND:", 0);
+    f_ret = f_mount(&nand_fs, ctrnand_drive, 0);
     if (f_ret != FR_OK)
     {
         printf("CTRNAND f_mount returned %s", ff_err[f_ret]);
@@ -41,7 +51,7 @@ int main()
         wait_for_key();
         ctr_system_reset();
     }
-
+    
     // Attempt to load FIRM from CTRNAND
     s32 ret = load_firm();
     if (ret != 0)
@@ -61,10 +71,11 @@ int main()
 		if (key & KEY_A)
 		{       
             // Unmount CTRNAND
-            f_ret = f_mount(NULL, "CTRNAND:", 0);
+            f_ret = f_mount(NULL, ctrnand_drive, 0);
             if (f_ret != 0)
                 printf("f_mount returned %s", ff_err[f_ret]);
 
+            cleanup();
             printf("Booting FIRM\n");
 			launch_firm();
 		}
@@ -73,38 +84,51 @@ int main()
 			break;
 
         else if (key & KEY_Y)
-            chainload("CTRNAND:" PAYLOADPATH);
+            chainload(ctrnand_drive);
 
         else if ((key & KEY_X) && SD_INSERTED)
         {
-            f_ret = f_mount(&sd_fs, "SD:", 1);
+            f_ret = f_mount(&sd_fs, sd_drive, 0);
             if (f_ret != FR_OK)
             {
                 printf("f_mount returned %s", ff_err[f_ret]);
                 error("Couldn't mount SD card");
             }
 
-            chainload("SD:/" PAYLOADPATH);
+            chainload(sd_drive);
         }
 	}
 
+    ctr_flush_cache();
     ctr_system_poweroff();
 }
 
-void chainload(const char *payload_path)
+void chainload(const char *drive)
 {
     u8 *loader_addr = (u8*)0x25F00000, *payload_addr = (u8*)0x24F00000;
+
+    memcpy(loader_addr, chainloader_bin, chainloader_bin_len);
+
     FIL payload;
     size_t br;
 
-    if (f_open(&payload, payload_path, FA_READ) != FR_OK)
+    char path[0x20] = {0};
+
+    u32 drive_len = strlen(drive);
+    memcpy(path, drive, drive_len);
+    memcpy(path + drive_len, PAYLOADPATH, strlen(PAYLOADPATH));
+
+    printf("%s\n", path);
+
+    if (f_open(&payload, path, FA_READ) != FR_OK)
         error("Couldn't open payload");
     if (f_read(&payload, payload_addr, f_size(&payload), &br) != FR_OK)
         error("Couldn't read payload");
     f_close(&payload);
 
-    memcpy(loader_addr, chainloader_bin, chainloader_bin_len);
+    f_mount(NULL, drive, 0);
+    cleanup();
 
+    ctr_flush_cache();
     ((void(*)())loader_addr)();
-    return;
 }

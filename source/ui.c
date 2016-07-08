@@ -1,6 +1,5 @@
 #include "common.h"
 
-framebuffer_t *framebuffer = (framebuffer_t *)0x23FFFE00;
 u16 console_x = 0, console_y = 0;
 
 // Wouldn't rely too much on this function...
@@ -19,7 +18,7 @@ u32 wait_for_key()
 
 void clear_screen(const u8 *fb, const u32 rgb)
 {
-	size_t sz = fb_sz(fb)*3, i = 0;
+	u32 sz = fb_sz(fb), i = 0;
 
 	while (i < sz)
 	{
@@ -29,6 +28,7 @@ void clear_screen(const u8 *fb, const u32 rgb)
 	}
 }
 
+// routine is from github.com/b1l1s/ctr
 void draw_char(u8 *fb, const u16 x, const u16 y, const u8 c)
 {
 	u16 _x, _y, _c = 0;
@@ -50,26 +50,26 @@ void draw_char(u8 *fb, const u16 x, const u16 y, const u8 c)
 
 void scroll_up(u8 *fb)
 {
-    for (u32 i = 0; i < 400; i++) // 320 if bottom screen
+    for (u32 i = 0; i < (fb == TOP_SCREEN0 ? 400 : 320); i++)
     {
-        memmove(fb + i*720 + 24, fb + i*720, 696);
-        memset(fb + i*720, 0, 24); 
+        memmove(fb + (i * 720) + 24, fb + i*720, 696);
+        memset(fb + (i * 720), 0, 24); 
     }
 }
 
 inline void console_putc(void *fb, char c)
 {
-	if(c == '\n' || (console_x + FONT_X) > TOP_WIDTH)
+	if(c == '\n' || (console_x + FONT_X) > (fb == TOP_SCREEN0 ? 400 : 320))
 	{
 		console_x = 0;
 		console_y += FONT_Y;
 	}
 
-	if(console_y >= HEIGHT)
+	if(console_y >= 240)
     {
-        scroll_up(framebuffer->top_left);
+        scroll_up(fb);
         console_x = 0;
-        console_y = (HEIGHT - FONT_Y);
+        console_y = 240 - FONT_Y;
     }
 
 	if(c == '\r' || c == '\n') return;
@@ -84,8 +84,8 @@ void console_init()
 	console_x  = 0;
 	console_y  = 0;
 
-	clear_screen(framebuffer->top_left, 0x00);
-    init_printf(framebuffer->top_left, console_putc);
+	clear_screen(TOP_SCREEN0, 0x00);
+    init_printf(TOP_SCREEN0, console_putc);
 	return;
 }
 

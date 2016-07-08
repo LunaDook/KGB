@@ -16,7 +16,7 @@ void __attribute__((naked)) disable_lcds()
     ((void (*)())*a11_entry)();
 }
 
-firm_header *firm = (firm_header*)0x27800000;
+firm_header *firm = (firm_header*)FIRM_LOC;
 
 // Input will be "000000XX.app" - return XX as a regular number
 // There's definitely a better way to do this
@@ -25,10 +25,7 @@ u8 check_firm_version(char *path)
     u8 n = 0;
 
     for (s32 i = 7; i >= 0; i--)
-    {
-        char chr = path[i];
-        n += (chr - (chr > '9' ? '7' : '0')) << 4*(7-i);
-    }
+        n += (path[i] - (path[i] > '9' ? '7' : '0')) << 4*(7-i);
 
     return n;
 }
@@ -48,7 +45,7 @@ s32 load_firm()
 
     f_ret = f_findfirst(&content_dir, &firm_info, path, "*.app"); // Search for FIRM under the content folder
     if (f_ret != FR_OK)
-        printf("f_findfirst returned %s", ff_err[f_ret]);
+        printf("f_findfirst returned %s\n", ff_err[f_ret]);
 
     // DAMMIT GATEWAY
     while (f_ret == FR_OK && firm_info.fname[0])
@@ -65,10 +62,12 @@ s32 load_firm()
 
     path[40] = '/';
 
-    for (u32 i = 0; i < 13; i++)
+    for (u8 i = 0; i < 12; i++)
         path[41 + i] = firm_info.fname[i];
 
-    printf("Using %s\n\n", firm_info.fname);
+    path[53] = 0; // zero-terminate
+
+    printf("Using %s\n\n", path + 14); // Skip "CTRNAND:/title"
 
     f_ret = f_open(&firm_file, path, FA_READ);
     if (f_ret != FR_OK)
@@ -80,13 +79,12 @@ s32 load_firm()
     size_t br;
 
     f_ret = f_read(&firm_file, (u8*)firm, firm_info.fsize, &br);
-    if (f_ret != FR_OK)
-        printf("f_read returned %s", ff_err[f_ret]);
-
     f_close(&firm_file);
-
     if (f_ret != FR_OK || br != firm_info.fsize)
+    {
+        printf("f_read returned %s", ff_err[f_ret]);
         return -3;
+    }
 
     s32 ret = process_firm(ver);
     if (ret)
@@ -110,7 +108,7 @@ s32 process_firm(u8 version)
 
 	if (N3DS) // Run arm9loader
 	{
-        u32 ret = decrypt_arm9bin((u8*)firm + firm->section[2].byte_offset, version);
+        s32 ret = decrypt_arm9bin((u8*)firm + firm->section[2].byte_offset, firm->section[2].size, version);
         if (ret != 0)
             printf("decrypt_arm9bin returned %d\n", ret);
 
@@ -120,7 +118,7 @@ s32 process_firm(u8 version)
 	// Nowadays, only sections used are 0, 1, and 2 for NFIRM
 	for (u32 id = 0; id < 4 && firm->section[id].size; id++)
 	{
-        printf("FIRM section %d:\nDest: 0x%X, len: 0x%X, offset: 0x%X\n\n", id, firm->section[id].load_address, firm->section[id].size, firm->section[id].byte_offset);
+        printf("FIRM section %d:\nDest: 0x%08X, len: 0x%X, offset: 0x%X\n\n", id, firm->section[id].load_address, firm->section[id].size, firm->section[id].byte_offset);
         memcpy((u8*)firm->section[id].load_address, (u8*)firm + firm->section[id].byte_offset, firm->section[id].size);
 	}
 
@@ -134,7 +132,7 @@ s32 process_firm(u8 version)
 void launch_firm()
 {
     ctr_flush_cache();
-    
+
     *a11_entry = (u32)disable_lcds;
     while (*a11_entry);  // Make sure it jumped there correctly before changing it.
 

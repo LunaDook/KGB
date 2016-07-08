@@ -63,7 +63,7 @@ void aes_batch(void* dst, const void* src, u32 blockCount);
 
 void decrypt_firm_cxi(u8 *firm_buffer);
 
-u32 decrypt_arm9bin(const u8 *header, const u8 version);
+s32 decrypt_arm9bin(const u8 *header, const u32 len, const u8 version);
 s32 set_nctrnand_key();
 
-void dump_firm0(u8 *firm_buffer);
+s32 dump_firm(u8 *firm_buffer, const u8 firm_id);

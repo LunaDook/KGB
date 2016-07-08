@@ -225,7 +225,8 @@ void aes(void* dst, const void* src, u32 blockCount, void* iv, u32 mode, u32 ivM
 }
 
 // From Decrypt9WIP
-void sha_quick(void* res, const void* src, u32 size, u32 mode) {
+void sha_quick(void* res, const void* src, u32 size, u32 mode)
+{
     sha_init(mode);
     sha_update(src, size);
     sha_get(res);
@@ -271,35 +272,37 @@ void decrypt_firm_cxi(u8 *firm_buffer)
     return;
 }
 
-u32 decrypt_arm9bin(const u8 *header, const u8 version)
+s32 decrypt_arm9bin(const u8 *header, const u32 len, const u8 version)
 {
     u8 slot = ((version >= 0xF) ? 0x16 : 0x15),
-       key_y[16], iv[16];
+       key_y[0x10], iv[0x10];
 
-    u32 arm9loader_version = 0, size = 0;
+    u32 a9l_ver = 0, size = 0;
 
     if (version == 0x0F)
-        arm9loader_version = 1;
+        a9l_ver = 1;
+    // This version is unsupported
+    // Mainly due to being annoying overall
 
     else if (version > 0x0F)
-        arm9loader_version = 2;
+        a9l_ver = 2;
 
-    memcpy(key_y, header + 0x10, 16);
-    memcpy(iv, header + 0x20, 16);
+    memcpy(key_y, header + 0x10, 0x10);
+    memcpy(iv, header + 0x20, 0x10);
 
     u8 *arm9_bin = (u8*)(header + 0x800);
 
-    // Apparently, engineers decided to store it as ASCII text (yes, literally text)
+    // Nintendo decided to store it as ASCII text (yes, literally text -_-)
     u8 *size_loc = (u8*)(header + 0x30);
-    for (u32 i = 0; size_loc[i] != 0; i++)
+    for (u8 i = 0; size_loc[i] != 0; i++)
         size = (size * 10) + (size_loc[i] - '0');
 
-    printf("FIRM 0x%02X, arm9loader v%d, ARM9bin size is %d bytes\n", version, arm9loader_version, size);
+    printf("FIRM %X, arm9loader v%d, arm9bin size is %X bytes\n", version, a9l_ver, size);
 
-    if (arm9loader_version)
+    if (a9l_ver)
     {
-        u8 slot0x11key96[16] = {0x42, 0x3F, 0x81, 0x7A, 0x23, 0x52, 0x58, 0x31, 0x6E, 0x75, 0x8E, 0x3A, 0x39, 0x43, 0x2E, 0xD0},
-           slot0x16keyX[16];
+        u8 slot0x11key96[0x10] = {0x42, 0x3F, 0x81, 0x7A, 0x23, 0x52, 0x58, 0x31, 0x6E, 0x75, 0x8E, 0x3A, 0x39, 0x43, 0x2E, 0xD0},
+           slot0x16keyX[0x10];
         // And there it goes...
 
         aes_setkey(0x11, slot0x11key96, AES_KEYNORMAL, AES_INPUT_BE | AES_INPUT_NORMAL);
@@ -311,24 +314,48 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
 
     aes_setiv(iv, AES_INPUT_BE | AES_INPUT_NORMAL);
     aes_setkey(slot, key_y, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
-
     aes_use_keyslot(slot);
     aes(arm9_bin, arm9_bin, size / AES_BLOCK_SIZE, iv, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
-    if(arm9loader_version >= 2)
+    if(a9l_ver == 2)
     {
-        // TODO: Extract the key from the ARM9 binary itself rather than hardcoding it
-        // I think I'll go with a partial key + memsearch, it'll probably be a bit slower, but safer
-        u8 keydata[16] = {0xDD, 0xDA, 0xA4, 0xC6, 0x2C, 0xC4, 0x50, 0xE9, 0xDA, 0xB6, 0x9B, 0x0D, 0x9D, 0x2A, 0x21, 0x98},
-           keyx[16];
+        u8  key_firstbyte = 0xDD,
+            key[0x10],
+            keyx_tmp[0x10],
+            key_tmphash[0x20],
+            key_hash[0x20] = {0xB9, 0x4D, 0xB1, 0xB1, 0xC3, 0xE0, 0x11, 0x08, 0x9C, 0x19, 0x46, 0x06, 0x4A, 0xBC, 0x40, 0x2A,
+                              0x7C, 0x66, 0xF4, 0x4A, 0x74, 0x6F, 0x71, 0x50, 0x32, 0xFD, 0xFF, 0x03, 0x74, 0xD7, 0x45, 0x2C};
+
+        // "These are the New3DS keyslots, where the keyX is generated with keyslot 0x11 by the New3DS arm9 binary loader"
+        // Only searches in the arm9loader binary
+        for (u32 i = 0; i < (len - size); i += 2)
+        // According to chaoskagami the key is 4 byte aligned
+        // I use two, just to be safe
+        {
+            u8 *j = arm9_bin + size + i; // Skips the arm9 binary itself and goes straight to the arm9 loader
+            if (*j == key_firstbyte) // First byte matches
+            {
+                sha_quick(key_tmphash, j, 0x10, SHA256_MODE);
+                if (memcmp(key_tmphash, key_hash, 0x20) == 0)
+                {
+                    memcpy(key, j, 0x10);
+                    break;
+                }
+            }
+        }
+
+        // Check again, just in case
+        sha_quick(key_tmphash, key, 0x10, SHA256_MODE);
+        if (memcmp(key_tmphash, key_hash, 0x20) != 0)
+            // This can only happen if the key wasn't found at all
+            return -2;
 
         aes_use_keyslot(0x11);
-
         for (u32 slot = 0x19; slot < 0x20; slot++)
         {
-            aes(keyx, keydata, 1, NULL, AES_ECB_DECRYPT_MODE, 0);
-            aes_setkey(slot, keyx, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
-            *(u8*)(keydata + 0xF) += 1;
+            aes(keyx_tmp, key, 1, NULL, AES_ECB_DECRYPT_MODE, 0);
+            aes_setkey(slot, keyx_tmp, AES_KEYX, AES_INPUT_BE | AES_INPUT_NORMAL);
+            key[0xF] += 1;
         }
     }
 
@@ -340,30 +367,72 @@ u32 decrypt_arm9bin(const u8 *header, const u8 version)
 
 s32 set_nctrnand_key()
 {
-    const u8 slot0x05keyY[] = {0x4D, 0x80, 0x4F, 0x4E, 0x99, 0x90, 0x19, 0x46, 0x13, 0xA2, 0x04, 0xAC, 0x58, 0x44, 0x60, 0xBE};
-    aes_setkey(0x05, slot0x05keyY, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
+    const u8 keyY_hash[] = {0x98, 0x24, 0x27, 0x14, 0x22, 0xB0, 0x6B, 0xF2, 0x10, 0x96, 0x9C, 0x36, 0x42, 0x53, 0x7C, 0x86,
+                            0x62, 0x22, 0x5C, 0xFD, 0x6F, 0xAE, 0x9B, 0x0A, 0x85, 0xA5, 0xCE, 0x21, 0xAA, 0xB6, 0xC8, 0x4D};
+    u8 key_firstbyte = 0x4D,
+       keyhash_tmp[0x20],
+       keyY[0x10];
+
+    u8 *firm_buf = (u8*)FIRM_LOC;
+    firm_header *header = (firm_header*)FIRM_LOC;
+
+    s32 ret = dump_firm(firm_buf, 1);
+    if (ret)
+    {
+        printf("dump_firm returned %d\n", ret);
+        return -1;
+    }
+
+    ret = decrypt_arm9bin((u8*)header + header->section[2].byte_offset, header->section[2].size, 0x10);
+    if (ret)
+    {
+        printf("decrypt_arm9bin returned %d\n", ret);
+        return -2;
+    }
+
+    for (u32 i = 0; i < header->section[2].size; i += 2)
+    {
+        u8 *j = (u8*)header + header->section[2].byte_offset + i;
+        if (*j == key_firstbyte) // First byte matches
+        {
+            sha_quick(keyhash_tmp, j, 0x10, SHA256_MODE);
+            if (memcmp(keyhash_tmp, keyY_hash, 0x20) == 0)
+            {
+                memcpy(keyY, j, 0x10);
+                break;
+            }
+        }
+    }
+
+    sha_quick(keyhash_tmp, keyY, 0x10, SHA256_MODE);
+    if (memcmp(keyhash_tmp, keyY_hash, 0x20) != 0)
+        // This can only happen if the key wasn't found at all
+        return -3;
+
+    aes_setkey(0x05, keyY, AES_KEYY, AES_INPUT_BE | AES_INPUT_NORMAL);
     return 0;
 }
 
-/*void dump_firm0(u8 *firm_buffer)
+// 0x0B130000 = start of FIRM0 partition, 0x400000 = size of FIRM partition (4MB)
+s32 dump_firm(u8 *firm_buffer, const u8 firm_id)
 {
-    u32 firm0_offset = 0x0B130000, firm0_size = 0x00100000;
-    u8 ctr[16], cid[16], sha[32];
+    u32 firm_offset = (0x0B130000 + ((firm_id % 2) * 0x400000)),
+        firm_size = 0x00100000; // 1MB, because
 
-    printf("Reading NAND\n");
+    u8 ctr[0x10],
+       cid[0x10],
+       sha[0x20];
 
-    sdmmc_nand_readsectors(firm0_offset / SECTOR_SIZE, firm0_size / SECTOR_SIZE, (u8*)firm_buffer);
-
-    printf("Obtaining IV\n");
+    if (sdmmc_nand_readsectors(firm_offset / SECTOR_SIZE, firm_size / SECTOR_SIZE, (u8*)firm_buffer))
+        return -1;
 
     sdmmc_get_cid(1, (u32*)cid);
-    sha_quick(sha, cid, 16, SHA256_MODE);
-    memcpy(ctr, sha, 16);
-    aes_advctr(ctr, firm0_offset / AES_BLOCK_SIZE, AES_INPUT_BE | AES_INPUT_NORMAL);
-
-    printf("Decrypting FIRM0\n");
+    sha_quick(sha, cid, 0x10, SHA256_MODE);
+    memcpy(ctr, sha, 0x10);
+    aes_advctr(ctr, firm_offset / AES_BLOCK_SIZE, AES_INPUT_BE | AES_INPUT_NORMAL);
 
     aes_use_keyslot(0x06);
     aes_setiv(ctr, AES_INPUT_BE | AES_INPUT_NORMAL);
-    aes((u8*)firm_buffer, (u8*)firm_buffer, firm0_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
-}*/
+    aes((u8*)firm_buffer, (u8*)firm_buffer, firm_size / AES_BLOCK_SIZE, ctr, AES_CTR_MODE, AES_INPUT_BE | AES_INPUT_NORMAL);
+    return 0;
+}

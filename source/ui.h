@@ -5,19 +5,20 @@
 #define FONT_X 8
 #define FONT_Y 8
 
-#define HEIGHT		240
-#define TOP_WIDTH	400
-#define SUB_WIDTH	320
+#define TOP_FB_SZ	0x46500
+#define SUB_FB_SZ	0x38400
 
-#define TOP_FB_SZ	(TOP_WIDTH * HEIGHT)
-#define SUB_FB_SZ	(SUB_WIDTH * HEIGHT)
+#define TOP_SCREEN0 (u8*)(*(u32*)0x23FFFE00)
+#define TOP_SCREEN1 (u8*)(*(u32*)0x23FFFE00)
+#define BOT_SCREEN0 (u8*)(*(u32*)0x23FFFE08)
+#define BOT_SCREEN1 (u8*)(*(u32*)0x23FFFE08)
 
 #define fb_sz(fb) \
-	(fb == framebuffer->bottom ? SUB_FB_SZ : TOP_FB_SZ)
+	(fb == BOT_SCREEN0 ? SUB_FB_SZ : TOP_FB_SZ)
 
 #define set_pixel(fb, x, y, rgb) \
 { \
-	u32 offset = (HEIGHT * (x) + HEIGHT - (y) - 1) * 3; \
+	u32 offset = (240 * (x) + 240 - (y) - 1) * 3; \
 	*(u8*)(fb + offset++) = rgb & 0xFF; \
 	*(u8*)(fb + offset++) = (rgb >> 8) & 0xFF; \
 	*(u8*)(fb + offset++) = (rgb >> 16) & 0xFF; \
@@ -41,14 +42,6 @@
 // All of this was taken from https://3dbrew.org/wiki/HID_Registers
 
 extern const char font[1024];
-
-typedef struct framebuffer_t {
-    u8 *top_left;
-    u8 *top_right;
-    u8 *bottom;
-} framebuffer_t;
-
-extern framebuffer_t *framebuffer;
 
 u32 wait_for_key();
 

@@ -25,7 +25,6 @@ INCLUDES	:=	source
 NAME		:=  KGB
 CHAIN		:=  chainloader
 STAGE2		:=  stage2
-RELEASEDIR  :=  release
 
 CHAIN_H		:=  $(CURDIR)/$(SOURCES)/$(CHAIN).h
 
@@ -110,7 +109,7 @@ export LIBPATHS	:=	$(foreach dir,$(LIBDIRS),-L$(dir)/lib)
 #---------------------------------------------------------------------------------
 all: $(BUILD)
 
-$(BUILD): $(CHAIN) $(CHAIN_H)
+$(BUILD): $(CHAIN_H)
 	@[ -d $(OUTPUT_D) ] || mkdir -p $(OUTPUT_D)
 	@[ -d $(BUILD) ] || mkdir -p $(BUILD)
 	@make --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
@@ -124,14 +123,10 @@ $(CHAIN_H): $(CHAIN)
 	@sed 's/$(CHAIN)_$(CHAIN)/$(CHAIN)/g' $(CHAIN)/$(CHAIN).h > $(CHAIN_H)
 	@rm -rf $(CHAIN)/$(CHAIN).h
 
-release: all
-	@cp -a $(CURDIR)/$(TARGET).bin $(CURDIR)/$(RELEASEDIR)/$(TARGET).bin
-	@echo Done!
-
 #---------------------------------------------------------------------------------
 clean:
 	@make --no-print-directory -C $(CURDIR)/$(CHAIN) -f $(CURDIR)/$(CHAIN)/Makefile clean
-	@rm -rf $(CURDIR)/$(SOURCES)/$(CHAIN).h $(BUILD) $(OUTPUT).bin $(CURDIR)/$(RELEASEDIR)
+	@rm -rf $(CURDIR)/$(SOURCES)/$(CHAIN).h $(BUILD) $(OUTPUT).bin
 	@echo cleaned $(NAME)
 
 #---------------------------------------------------------------------------------
