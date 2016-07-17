@@ -1,5 +1,5 @@
 # KGB-stage2 - Modified KGB payload to boot from NAND rather than SD
-
+Apparantly there is some issue that prevents stage2 installation from working properly. Please don't install it as stage2 right now.
 # Note
 This is extremely early alpha software, I'm just putting it out here in case anyone wants to check it out.
 I won't provide any support whatsoever (yet) and lack of documentation is to be expected.
