@@ -1,3 +1,6 @@
+# Notice
+This was never my project, it was originally created by @Wolfvak and at some point in the past I had forked it for whatever reason. As there is no real need for KGB as a CFW anymore (due to Luma3DS' support for booting from NAND), I'm guessing they discontinued the project. I'm keeping the repo up for archival purposes. I know for a fact that it was behind wolfvak's repo by a lot of commits though, so keep that in mind. I can not and will not provide support for it, and if you do something stupid with it I take no responisbility.
+
 # KGB-stage2 - Modified KGB payload to boot from NAND rather than SD
 Apparantly there is some issue that prevents stage2 installation from working properly. Please don't install it as stage2 right now.
 # Note
